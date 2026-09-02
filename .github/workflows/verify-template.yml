@@ -23,7 +23,7 @@ jobs:
     container: texlive/texlive:latest-medium
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # fonts-noto-cjk installs the "Noto Serif CJK TC" naming, which is the
       # other half of the split \PickFont exists to absorb; the Google Fonts
@@ -70,7 +70,7 @@ jobs:
 
       - name: Upload PDF
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: template-pdf
           path: references/template.pdf
