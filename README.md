@@ -1,3 +1,5 @@
+**English** | [繁體中文](README.zh-TW.md)
+
 # latex-twocol-cjk
 
 A Claude skill for two-column, A4, IEEE-style LaTeX documents that mix CJK and
