@@ -29,6 +29,10 @@ The template compiles clean — zero warnings, zero missing characters, zero
 overfull boxes — on TeX Live 2026 with Windows-installed Noto TC fonts. Keep it
 that way: every warning it emits is a defect you introduced.
 
+Writing the Chinese prose is a separate job from setting it, and §9 governs it.
+If `be-human-v1` is installed, that skill is in force by default for every word
+of prose here — read §9 before drafting the abstract, not after.
+
 ## Scope warning: IEEE-*style*, not IEEE-submittable
 
 This builds on `article`, not `IEEEtran`. The output looks like an IEEE paper
@@ -201,7 +205,48 @@ case the rule above must not "fix".
 If lines still set loosely, the lever is `intraspace` on the locale, not
 `\sloppy`. See the preamble comment and `troubleshooting.md` E19.
 
-## 9. Bibliography
+## 9. Prose style for the Chinese text
+
+Everything above governs how the page sets. The words are a separate problem,
+and in a zh-Hant paper they are the half a reviewer reacts to first.
+
+**If the `be-human-v1` skill is installed, it is in force by default** for every
+word of prose written into these documents — title, abstract, body, captions,
+acknowledgment — without being invoked. It carries the full Taiwan-usage and
+punctuation layer and the de-AI-tone framework. Where the two overlap,
+`be-human-v1` decides wording and punctuation; this skill decides anything that
+changes how the page sets. Get it at
+<https://github.com/markgoob/be-human-v1>.
+
+Standing alone, apply at least the four below. They are the ones that actually
+show up in Chinese technical writing.
+
+**Taiwan terms, not mainland ones.** 資料 not 數據 (keep 數據 only for numeric
+statistics), 軟體/硬體 not 軟件/硬件, 程式 not 程序, 最佳化 not 優化, 訊號 not
+信號, 介面 not 界面, 預設 not 默認, 相容 not 兼容, 模擬 not 仿真, 向量/純量 not
+矢量/標量, 機率 not 概率. Three are sense-dependent rather than banned outright:
+品質 for quality but 質量 for physical mass, 水準 for standard but 水平 for
+horizontal, 透過 for by-means-of but 通過 for passing.
+
+**Full-width punctuation inside Chinese sentences**: ，。、：；？！（）「」
+Half-width punctuation belongs only between two Latin words, which in a paper
+means inside citations, bibliography entries, and listings. Two LaTeX-specific
+consequences, since the source is not plain text:
+
+- Type 「」 as the characters themselves. Backtick-and-quote input (` `` '' `)
+  is Latin quoting and comes out as “ ”.
+- Type the Chinese ellipsis as ⋯⋯, not `\ldots`, which sets the Latin
+  three-dot form on the baseline.
+
+**Keep the half-width space at every CJK/Latin boundary** (§8). That rule is
+`be-human-v1`'s too; it is repeated here because it also moves line breaks.
+
+**Abstracts attract AI tone more than any other part of a paper.** Cut
+「本文旨在深入探討」「隨著⋯⋯的蓬勃發展」「綜上所述」「具有重要的意義」. State
+what was built, what was measured, and what the number was. The 150–250 word
+budget in §3 is not the constraint; the padding is.
+
+## 10. Bibliography
 
 - Numbered in citation order. `\cite{key}` gives `[1]`; punctuation follows the
   bracket.
@@ -218,7 +263,7 @@ If lines still set loosely, the lever is `intraspace` on the locale, not
 - Chinese references: keep the author name un-inverted (陳大文, not 大文, 陳),
   and append `(in Chinese)` after the entry.
 
-## 10. Build and verify
+## 11. Build and verify
 
 ```bash
 latexmk -lualatex -interaction=nonstopmode main.tex

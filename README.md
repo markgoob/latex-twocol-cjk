@@ -109,6 +109,20 @@ glyph was dropped from the PDF; the build still succeeds.
 `references/troubleshooting.md` maps 19 errors to causes and fixes, with the log
 excerpts they actually produce.
 
+## Prose, not just typesetting
+
+Setting a Chinese page correctly and writing acceptable Chinese are different
+jobs, and the second one is what a reviewer reacts to first. `SKILL.md` §9
+covers the part that overlaps with LaTeX: Taiwan rather than mainland
+terminology, full-width punctuation and the two ways LaTeX quietly substitutes
+the Latin forms (backtick quoting, `\ldots`), the half-width space at every
+CJK/Latin boundary, and the padding that abstracts attract.
+
+If [be-human-v1](https://github.com/markgoob/be-human-v1) is installed alongside
+this skill, it takes over prose by default — no invocation — and §9 defers to it
+on wording and punctuation. This skill keeps authority over anything that
+changes how the page sets. Neither skill requires the other to work.
+
 ## Contents
 
 | Path | What it is |
