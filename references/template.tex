@@ -1,0 +1,509 @@
+% !TeX program = lualatex
+% =============================================================================
+% TEMPLATE: IEEE-Style Two-Column CJK Technical Document (LuaLaTeX + babel)
+%
+% ENGINE: LuaLaTeX, not XeLaTeX.  babel's `onchar=ids fonts` — the mechanism
+% that switches fonts per character between CJK and Latin — is documented as
+% LuaTeX-only.  Under XeLaTeX the option is silently inert: the main language's
+% font takes the whole document and no per-script switching happens.
+% See references/troubleshooting.md, entry E1, for the XeLaTeX-only fallback.
+%
+% Everything from here to "END PREAMBLE" is the preamble.  Copy it whole.
+% =============================================================================
+
+\documentclass[10pt, a4paper, twocolumn]{article}
+\usepackage[a4paper, top=2cm, bottom=2cm, left=1.5cm, right=1.5cm]{geometry}
+\setlength{\columnsep}{16pt}   % article default 10pt is too tight at this width
+
+\usepackage{fontspec}
+
+% --- LANGUAGES ---------------------------------------------------------------
+% English is the MAIN language, so \figurename/\tablename/\refname/\today stay
+% English ("Figure", "Table", "References") as IEEE requires.  Traditional
+% Chinese is a secondary locale reached automatically through onchar.
+%
+% Do NOT use the `japanese` locale for Chinese: babel has chinese-traditional
+% (zh-Hant) and chinese-simplified (zh-Hans).  The japanese locale would set
+% captions to 図/表/参考文献 and dates to Japanese format.
+%
+% For Simplified Chinese: swap chinese-traditional -> chinese-simplified.
+% For Japanese:           swap chinese-traditional -> japanese.
+% For Korean:             swap chinese-traditional -> korean  (also needs a KR
+%                         font below; Korean line-breaks on spaces, not chars).
+% intraspace widens the glue babel sets between Han characters.  The default
+% stretch is too small once a narrow two-column page also carries unbreakable
+% \texttt{} identifiers: on a 12-page zh-Hant paper, underfull \hbox warnings at
+% badness 10000 fell from 26 to 5 with this one change.  Keep the base at 0 so
+% normal lines are untouched; only the stretch and shrink move.
+\usepackage[english, provide=*]{babel}
+\babelprovide[import, onchar=ids fonts,
+              intraspace={0 .22 .10}]{chinese-traditional}
+
+% --- FONT SELECTION WITH FALLBACK -------------------------------------------
+% Font family names differ by distribution channel.  The same typeface ships as
+% "Noto Serif CJK TC" (noto-cjk repo, Linux packages, Overleaf) and as
+% "Noto Serif TC" (Google Fonts, which is what a Windows user usually installs).
+% Hard-coding one name makes fontspec abort with a FATAL "font cannot be found".
+% \PickFont walks a list and takes the first family actually installed.
+\ExplSyntaxOn
+\NewDocumentCommand \PickFont { m m }
+  {
+    \tl_clear_new:N #1
+    \clist_map_inline:nn {#2}
+      { \tl_if_empty:NT #1 { \IfFontExistsTF {##1} { \tl_set:Nn #1 {##1} } { } } }
+    \tl_if_empty:NT #1
+      { \msg_warning:nnn { template } { nofont } {#2} }
+  }
+\msg_new:nnn { template } { nofont }
+  { None~of~these~fonts~is~installed:~#1~--~run~scripts/check-fonts~. }
+\ExplSyntaxOff
+
+\PickFont \LatinSerif {Noto Serif, TeX Gyre Termes, Times New Roman, DejaVu Serif}
+\PickFont \LatinSans  {Noto Sans, TeX Gyre Heros, Arial, DejaVu Sans}
+\PickFont \LatinMono  {Noto Sans Mono, DejaVu Sans Mono, Consolas, Courier New}
+\PickFont \CJKSerif   {Noto Serif CJK TC, Noto Serif TC, Source Han Serif TC,
+                       PMingLiU, MingLiU, Microsoft JhengHei}
+\PickFont \CJKSans    {Noto Sans CJK TC, Noto Sans TC, Source Han Sans TC,
+                       Microsoft JhengHei, PMingLiU}
+\PickFont \CJKMono    {Noto Sans Mono CJK TC, Noto Sans TC, Microsoft JhengHei,
+                       MingLiU}
+
+% THE WEIGHT-AXIS TRAP.  Google Fonts ships Noto TC as ONE variable file
+% (NotoSerifTC-VF.ttf) whose first named instance is styled "ExtraLight,Regular"
+% at weight 40.  Asking for the family by name therefore lands on ExtraLight:
+% Chinese body text renders visibly thinner than the Latin beside it, with no
+% warning at all.  Rendering the same text grey and measuring ink coverage gives
+% roughly 1.0 : 1.3 : 1.8 for default : wght=400 : wght=700 (absolute numbers
+% depend on point size and DPI; the ratio is the signal).  The cleanest proof:
+% an explicit wght=200 render is BYTE-IDENTICAL to the unpinned one, and 200 is
+% the ExtraLight end of the axis.
+%
+% Do not try to check this with pdffonts.  Subset names come from the base
+% font's PostScript name, so a correctly pinned run still reports
+% "NotoSerifTC-ExtraLight".  Measure the rendered ink instead.
+%
+% Pinning the axis fixes it, gives a REAL bold instead of a smeared fake one,
+% and is silently ignored by static families (verified on PMingLiU and
+% Microsoft JhengHei), so the same line is safe whichever font \PickFont found.
+% CJK families have no italic and no small caps, so all four faces plus sc are
+% mapped back onto the same file: FakeSlant supplies IEEE's \itshape headings,
+% and SmallCapsFont stops \scshape (used on every \section) from emitting
+% "Font shape .../m/sc undefined".  Note the remaining visual caveat: in a
+% section title mixing scripts, the Latin half small-caps and the Chinese half
+% cannot — for mostly-Chinese headings, swap \scshape for \bfseries below.
+%
+% All three families must be declared for BOTH scripts.  Declaring only rm —
+% the common mistake — leaves CJK inside \texttt, Verbatim blocks and
+% \sffamily TikZ node labels in a Latin font with no CJK glyphs; those
+% characters are then dropped from the PDF with only a log warning.
+\babelfont{rm}[Ligatures=TeX]{\LatinSerif}
+\babelfont{sf}[Ligatures=TeX]{\LatinSans}
+\babelfont{tt}{\LatinMono}
+
+\newcommand{\CJKaxis}[1]{
+  UprightFeatures    = {RawFeature={axis={wght=400}}},
+  BoldFont           = {*},
+  BoldFeatures       = {RawFeature={axis={wght=#1}}},
+  ItalicFont         = {*},
+  ItalicFeatures     = {RawFeature={axis={wght=400}}, FakeSlant=0.2},
+  BoldItalicFont     = {*},
+  BoldItalicFeatures = {RawFeature={axis={wght=#1}}, FakeSlant=0.2},
+  SmallCapsFont      = {*},
+  SmallCapsFeatures  = {RawFeature={axis={wght=400}}}
+}
+\babelfont[chinese-traditional]{rm}[\CJKaxis{700}]{\CJKSerif}
+\babelfont[chinese-traditional]{sf}[\CJKaxis{700}]{\CJKSans}
+\babelfont[chinese-traditional]{tt}[\CJKaxis{700}]{\CJKMono}
+
+% --- CORE PACKAGES -----------------------------------------------------------
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{siunitx}      % S columns: decimal-aligned numeric benchmark data
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{placeins}     % \FloatBarrier
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, calc, fit, backgrounds}
+\usepackage{fancyvrb}
+\usepackage{balance}
+\usepackage{microtype}    % protrusion; measurably fewer overfull lines in
+                          % narrow justified columns
+\usepackage{xurl}         % URL line-breaking in narrow columns
+% hyperref goes near the END of the preamble, then bookmark.  Loading it before
+% titlesec/placeins/fancyhdr (as the previous version did) is against hyperref's
+% documented ordering and misplaces anchors on unnumbered sections.
+\usepackage{hyperref}
+\usepackage{bookmark}
+
+% Ragged right in narrow tabularx cells; justified text in a 2 cm column
+% produces huge inter-word gaps or overfull boxes.
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\sisetup{detect-all, table-number-alignment = center}
+
+\fvset{fontsize=\scriptsize}
+\setlist[itemize]{label=--, leftmargin=*, nosep}
+\setlist[enumerate]{leftmargin=*, nosep}
+
+% --- IEEE NUMBERING ----------------------------------------------------------
+% \thesection must be redefined, not just the titlesec label.  Otherwise
+% \ref{sec:x} prints "2" while the heading shows "II.".
+\renewcommand{\thesection}{\Roman{section}}
+\renewcommand{\thesubsection}{\thesection-\Alph{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
+\renewcommand{\thetable}{\Roman{table}}
+\setcounter{secnumdepth}{4}
+
+% --- IEEE HEADING HIERARCHY --------------------------------------------------
+% NOTE ON \scshape AND \itshape: CJK fonts have neither a small-caps nor an
+% italic shape.  A Chinese section title under \scshape silently falls back to
+% the upright shape, so a mixed title renders half small-capped and half plain.
+% For a document whose headings are mostly Chinese, replace \scshape with
+% \bfseries and \itshape with \bfseries below.
+\titleformat{\section}[block]
+  {\centering\normalsize\scshape}{\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.2ex plus 0.5ex}{0.8ex plus 0.2ex}
+
+\titleformat{\subsection}[block]
+  {\normalsize\itshape}{\Alph{subsection}.}{0.5em}{}
+\titlespacing*{\subsection}{0pt}{1ex plus 0.3ex}{0.5ex plus 0.1ex}
+
+\titleformat{\subsubsection}[runin]
+  {\normalsize\itshape}{\arabic{subsubsection})}{0.5em}{}[:]
+\titlespacing*{\subsubsection}{\parindent}{0.8ex plus 0.2ex}{0.5em}
+
+\titleformat{\paragraph}[runin]          % IEEE level 4: "a) label:"
+  {\normalsize\itshape}{\alph{paragraph})}{0.5em}{}[:]
+\titlespacing*{\paragraph}{2em}{0.6ex plus 0.2ex}{0.5em}
+
+% --- IEEE CAPTIONS -----------------------------------------------------------
+% Without this the article default renders "Figure 1: ..." with a colon at body
+% size.  IEEE is "Fig. 1." below figures, and a centred "TABLE I" line with the
+% title in small caps above tables.
+\captionsetup[figure]{name={Fig.}, labelsep=period, font=footnotesize,
+                      justification=raggedright, singlelinecheck=true}
+\captionsetup[table]{labelsep=newline, font=footnotesize, textfont=sc,
+                     justification=centering, name={TABLE}}
+\captionsetup[subfigure]{labelformat=parens, labelsep=space, font=footnotesize}
+\renewcommand{\thefigure}{\arabic{figure}}
+
+% --- IEEE ABSTRACT & KEYWORDS ------------------------------------------------
+% The environments emit the "Abstract—" and "Index Terms—" labels themselves.
+% Do NOT type the label again in the body.
+\renewenvironment{abstract}
+  {\par\noindent\small\textbf{\textit{Abstract}---}\bfseries\ignorespaces}
+  {\par\vspace{0.5em}}
+
+\newenvironment{IEEEkeywords}
+  {\par\noindent\small\textbf{\textit{Index Terms}---}\bfseries\ignorespaces}
+  {\par\vspace{1em}\noindent\rule{\linewidth}{0.4pt}\par\vspace{0.5em}}
+
+% Chinese abstract, for the 中英雙摘要 layout Taiwanese venues expect.
+% Delete if the document is English-only.
+\newenvironment{cnabstract}
+  {\par\noindent\small\textbf{摘要---}\bfseries\ignorespaces}
+  {\par\vspace{0.5em}}
+\newenvironment{cnkeywords}
+  {\par\noindent\small\textbf{關鍵詞---}\bfseries\ignorespaces}
+  {\par\vspace{1em}}
+
+% --- HEADER / FOOTER ---------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0pt}   % 0.4pt would draw a bare rule above an
+                                     % empty header on every page
+% To use a running header, uncomment both lines below AND set headrulewidth
+% back to 0.4pt:
+% \fancyhead[L]{\small Journal / Conference Name}
+% \fancyhead[R]{\small Vol.~X, No.~Y, Month Year}
+
+% --- FLOAT PLACEMENT TUNING (CRITICAL for two-column) ------------------------
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.8}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+
+% --- HYPERLINKS & PDF METADATA -----------------------------------------------
+% pdftitle must be plain text: it cannot be derived from \title here because
+% \title contains \textbf and \\.
+\hypersetup{
+    colorlinks   = true,
+    linkcolor    = blue!70!black,
+    urlcolor     = blue!70!black,
+    citecolor    = blue!70!black,
+    pdftitle     = {Paper Title Here},
+    pdfauthor    = {First A. Author; Second B. Author},
+    pdfsubject   = {Technical report},
+    pdfkeywords  = {keyword one, keyword two},
+    bookmarksnumbered = true,
+    bookmarksopen     = true,
+}
+
+% --- TITLE & AUTHORS ---------------------------------------------------------
+% \thanks and footnotes are LOST inside the \twocolumn[\begin{@twocolumnfalse}]
+% block below — the material is typeset in a box outside the main galley.  Put
+% funding/corresponding-author notes in the affiliation lines, or emit them with
+% \footnotetext after the block.
+\title{\textbf{Paper Title Here: Subtitle if Needed\\
+論文標題：如有副標題請加入}}
+\author{
+  First A. Author\\
+  Department, University/Organization\\
+  City, Country\\
+  \texttt{first.author@example.com}
+  \and
+  Second B. Author\\
+  Department, University/Organization\\
+  City, Country\\
+  \texttt{second.author@example.com}
+}
+\date{}   % IEEE papers carry no date under the title.  Comment out to show one.
+
+% ============================== END PREAMBLE =================================
+\begin{document}
+\raggedbottom  % CRITICAL: without it LaTeX stretches inter-paragraph glue to
+               % equalise column bottoms, gouging whitespace around floats.
+
+\twocolumn[
+  \begin{@twocolumnfalse}
+    \maketitle
+    \vspace{-1.5em}
+
+    \begin{abstract}
+    This paper presents\ldots{} (150--250 words). No citations, equations, or
+    figure/table references belong in an abstract.
+    \end{abstract}
+
+    \begin{IEEEkeywords}
+    keyword one, keyword two, keyword three
+    \end{IEEEkeywords}
+
+    % Delete the two blocks below for an English-only document.
+    \begin{cnabstract}
+    本文提出……（150--250 字）。摘要中不列引用、方程式或圖表參考。
+    \end{cnabstract}
+
+    \begin{cnkeywords}
+    關鍵詞一、關鍵詞二、關鍵詞三
+    \end{cnkeywords}
+  \end{@twocolumnfalse}
+]
+
+% =============================================================================
+% BODY
+% =============================================================================
+
+\section{Introduction}
+\label{sec:intro}
+
+這是一段中英混合文本範例。babel 依字元所屬文字系統自動切換中文與 English
+字型，中英交界處請自行輸入一個半形空格。IEEE papers follow a standard
+structure: Introduction, Related Work, Methodology, Results, Discussion,
+Conclusion, References.
+
+Cross-reference examples: as shown in Fig.~\ref{fig:architecture}, the
+architecture\ldots{} The results in Table~\ref{tab:benchmark} show\ldots{}
+The relationship is defined by \eqref{eq:example}.
+Section~\ref{sec:method} now prints as ``Section III'' and matches its heading.
+
+\section{Related Work}
+\label{sec:related}
+
+Prior studies~\cite{ref1} have explored\ldots{} Further work~\cite{ref2}
+demonstrated improvements in\ldots{}
+
+\subsection{Background}
+This subsection uses the IEEE level-2 heading style.
+
+\subsubsection{Specific Details}
+A level-3 run-in heading; text continues after the colon.
+
+\paragraph{Finer Points}
+A level-4 run-in heading, IEEE's ``a)'' form.
+
+\section{Methodology}
+\label{sec:method}
+
+The core relationship is
+\begin{equation}
+E = mc^2
+\label{eq:example}
+\end{equation}
+
+Aligned equations:
+\begin{align}
+f(x) &= ax^2 + bx + c \label{eq:quad} \\
+g(x) &= \frac{\mathrm{d}f}{\mathrm{d}x} = 2ax + b \label{eq:deriv}
+\end{align}
+
+CJK in math must be wrapped in \verb|\text{}|; babel's onchar switching acts on
+text, not on math atoms: $P_{\text{尖峰}} = \max_t P(t)$.
+
+\subsection{Implementation}
+
+\begin{Verbatim}[fontsize=\scriptsize]
+# docker-compose.yml — CJK 註解在此也能正常顯示
+services:
+  app:
+    image: myapp:latest
+    ports:
+      - "8080:8080"
+\end{Verbatim}
+
+\begin{figure}[!t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[
+    >=Stealth, node distance=0.55cm,
+    primary/.style={draw=blue!50!cyan!60, fill=blue!6, rounded corners=5pt,
+        minimum width=4.2cm, minimum height=0.8cm,
+        font=\sffamily\small, text=blue!60!black, line width=0.6pt, align=center},
+    io/.style={draw=black!40, fill=white, rounded corners=6pt,
+        minimum width=4.6cm, minimum height=0.72cm,
+        font=\sffamily\small, text=black!80, line width=0.6pt},
+    junction/.style={circle, draw=red!50, fill=red!5,
+        inner sep=0pt, minimum size=0.5cm,
+        font=\sffamily\bfseries\small, text=red!60!black},
+    arr/.style={->, black!50, line width=0.6pt},
+    skiparr/.style={-, black!30, line width=0.5pt},
+]
+\node[io] (input) {Input 輸入};
+\node[primary, below=of input] (proc) {\textbf{Processing Block 處理區塊}};
+\node[junction, below=of proc] (add) {\small +};
+\node[io, below=of add] (output) {Output 輸出};
+
+\begin{scope}[on background layer]
+    \node[draw=black!30, dashed, rounded corners=8pt,
+          inner xsep=0.4cm, inner ysep=0.35cm,
+          fit=(proc)(add),
+          label={[font=\sffamily\scriptsize\color{black!50},
+                  anchor=north west]north west:{$\times$\,N layers}}
+         ] (loopbox) {};
+\end{scope}
+
+\draw[arr] (input) -- (proc);
+\draw[arr] (proc) -- (add);
+\draw[arr] (add) -- (output);
+
+\draw[skiparr]
+    ($(input.south)!0.5!(proc.north)$)
+    -| ([xshift=-0.25cm]loopbox.west |- add.west)
+    -- (add.west);
+\end{tikzpicture}%
+}
+\caption{Architecture diagram example. The processing block repeats $N$ times
+with residual skip connections. CJK labels render because \texttt{sf} is
+declared for the Chinese locale too.}
+\label{fig:architecture}
+\end{figure}
+
+% --- SUBFIGURES: IEEE (a)/(b) panels sharing one "Fig. X." caption ---
+\begin{figure}[!t]
+\centering
+\begin{subfigure}[t]{0.48\columnwidth}
+  \centering
+  \fbox{\rule{0pt}{1.6cm}\rule{0.8\linewidth}{0pt}}
+  \caption{Before 處理前}
+  \label{fig:panel-a}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.48\columnwidth}
+  \centering
+  \fbox{\rule{0pt}{1.6cm}\rule{0.8\linewidth}{0pt}}
+  \caption{After 處理後}
+  \label{fig:panel-b}
+\end{subfigure}
+\caption{Paired panels. Reference a single panel as Fig.~\ref{fig:panel-a}.}
+\label{fig:panels}
+\end{figure}
+
+\FloatBarrier
+\section{Results}
+\label{sec:results}
+
+\begin{table}[!t]
+\centering
+\caption{Performance Benchmark Results}
+\label{tab:benchmark}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabularx}{\columnwidth}{@{}l S[table-format=3.1] S[table-format=1.2] Y@{}}
+\toprule
+\textbf{Method} & {\textbf{TG (t/s)}} & {\textbf{TTFT (s)}} & \textbf{Notes} \\
+\midrule
+\multicolumn{4}{@{}l}{\textit{A. Configuration Group}} \\[2pt]
+Config A & 49.8 & 0.90 & Baseline 基準 \\
+Config B\,\rlap{$^{\star}$}
+         & 15.2 & 2.40 & \textbf{Recommended} 建議設定 \\
+\bottomrule
+\end{tabularx}
+
+\vspace{6pt}
+\raggedright
+{\scriptsize
+\textbf{TG} = token-generation throughput.\par\vspace{2pt}
+$^{\star}$\,Default configuration for production use.
+}
+\end{table}
+
+Table~\ref{tab:benchmark} shows Config~B gives the best throughput/latency
+balance. Numeric columns are \texttt{siunitx} \texttt{S} columns, so the
+decimal points align.
+
+\section{Discussion}
+\label{sec:discussion}
+
+本節討論研究結果、局限性及其影響。
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+總結主要貢獻並建議未來研究方向。
+
+\section*{Acknowledgment}
+The authors thank\ldots{} 作者感謝……
+
+% \appendix retitles sections as "Appendix A" only with the redefinition below;
+% article's \appendix alone just switches \thesection to \Alph.
+% \appendix
+% \renewcommand{\thesection}{\Alph{section}}
+% \titleformat{\section}[block]{\centering\normalsize\scshape}
+%   {Appendix~\thesection.}{0.5em}{}
+% \section{Supplementary Data}
+
+% --- BIBLIOGRAPHY ------------------------------------------------------------
+% thebibliography emits its own "References" heading — do not add \section*.
+% \balance must appear in what will be the FIRST column of the LAST page; check
+% the unbalanced output first and move it if the references start on the right.
+\balance
+\begingroup
+\raggedright
+\small
+\begin{thebibliography}{99}
+\bibitem{ref1}
+A.~B. Author and C.~D. Author, ``Title of journal article,''
+\textit{IEEE Trans. Example}, vol.~10, no.~3, pp.~100--110, Mar. 2024.
+
+\bibitem{ref2}
+E.~F. Author, ``Title of conference paper,'' in
+\textit{Proc. IEEE Int. Conf. Example (ICE)}, City, Country, 2023, pp.~50--55.
+
+\bibitem{ref3}
+陳大文 and 林小明, ``中文期刊論文標題,'' \textit{中華民國資訊學會期刊},
+vol.~5, no.~2, pp.~11--20, 2023 (in Chinese).
+
+\bibitem{ref4}
+I.~J. Author, ``Title of web resource,'' Website Name. [Online]. Available:
+\url{https://example.com/resource}. [Accessed: Jan.~15, 2025].
+\end{thebibliography}
+\endgroup
+
+\end{document}
