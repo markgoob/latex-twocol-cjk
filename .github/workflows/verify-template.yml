@@ -1,0 +1,77 @@
+name: verify template
+
+# The repository claims references/template.tex compiles with zero warnings.
+# This job is what keeps that claim true: it fails on any warning, not just on
+# a non-zero exit code, because LuaLaTeX exits 0 while silently dropping glyphs
+# it has no font for.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'references/template.tex'
+      - '.github/workflows/verify-template.yml'
+  pull_request:
+    paths:
+      - 'references/template.tex'
+      - '.github/workflows/verify-template.yml'
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    container: texlive/texlive:latest-medium
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # fonts-noto-cjk installs the "Noto Serif CJK TC" naming, which is the
+      # other half of the split \PickFont exists to absorb; the Google Fonts
+      # naming ("Noto Serif TC") is what a Windows author has instead.
+      - name: Install fonts
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq fonts-noto-cjk fonts-noto-core
+          fc-cache -f
+
+      # Packages the -medium scheme omits. balance.sty ships inside preprint.
+      # --verify-repo=none: mirror redirection lands on unsigned mirrors often
+      # enough to fail the job for a reason unrelated to the template.
+      - name: Install TeX packages
+        run: tlmgr --verify-repo=none install preprint titlesec placeins xurl multirow
+
+      - name: Check font availability
+        run: sh scripts/check-fonts.sh
+
+      - name: Compile
+        working-directory: references
+        run: latexmk -lualatex -interaction=nonstopmode -halt-on-error template.tex
+
+      - name: Fail on any warning
+        working-directory: references
+        run: |
+          log=template.log
+          fail=0
+          for pattern in 'Missing character' 'Font shape .* undefined' 'Overfull' 'Underfull'; do
+            n=$(grep -c "$pattern" "$log" || true)
+            printf '%-30s %s\n' "$pattern" "$n"
+            if [ "$n" -ne 0 ]; then
+              fail=1
+              grep -n "$pattern" "$log" | head -10
+            fi
+          done
+          w=$(grep -cE '^(LaTeX|Package|Class) .*Warning' "$log" || true)
+          printf '%-30s %s\n' 'LaTeX/Package/Class Warning' "$w"
+          if [ "$w" -ne 0 ]; then
+            fail=1
+            grep -E '^(LaTeX|Package|Class) .*Warning' "$log" | sort -u
+          fi
+          exit $fail
+
+      - name: Upload PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: template-pdf
+          path: references/template.pdf
+          if-no-files-found: warn
