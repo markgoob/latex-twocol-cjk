@@ -114,7 +114,7 @@ glyph was dropped from the PDF; the build still succeeds.
 | `Too many unprocessed floats` | add `\FloatBarrier` |
 | `There were undefined references` | run again |
 
-`references/troubleshooting.md` maps 23 errors to causes and fixes, with the log
+`references/troubleshooting.md` maps 24 errors to causes and fixes, with the log
 excerpts they actually produce.
 
 ## Prose, not just typesetting
@@ -141,6 +141,8 @@ changes how the page sets. Neither skill requires the other to work.
 | `scripts/check-fonts.ps1`, `.sh` | which candidate families are installed |
 | `scripts/build.ps1` | containerised build for machines with no TeX |
 | `scripts/package-skill.ps1` | build a `.skill` archive installers accept |
+| `scripts/log-gate.sh` | the five log counts; any non-zero fails |
+| `examples/` | complete documents written with the skill, rebuilt by CI against the current template |
 
 ## Verification
 

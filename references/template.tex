@@ -42,6 +42,15 @@
 \babelprovide[import, onchar=ids fonts,
               intraspace={0 .22 .10}]{chinese-traditional}
 
+% Ellipses.  onchar assigns a character to a locale by its script, and both
+% ellipsis code points are script "Common", so they stay in the Latin font:
+% Noto Serif has no U+22EF at all (the glyph is silently dropped) and sets
+% U+2026 as low Latin dots.  Route both to the Chinese locale so 「⋯⋯」 and
+% 「……」 come from the CJK font, centred, as Chinese typography expects.
+% In English sentences write \ldots instead of typing the character.
+\babelcharproperty{"2026}{locale}{chinese-traditional}
+\babelcharproperty{"22EF}{locale}{chinese-traditional}
+
 % --- FONT SELECTION WITH FALLBACK -------------------------------------------
 % Font family names differ by distribution channel.  The same typeface ships as
 % "Noto Serif CJK TC" (noto-cjk repo, Linux packages, Overleaf) and as

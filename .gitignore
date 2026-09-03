@@ -11,3 +11,7 @@
 *.pdf
 build.out
 .build-in-container.sh
+
+# Rendered example output is committed on purpose; intermediate main.pdf is not.
+!examples/*/*.pdf
+examples/*/main.pdf
