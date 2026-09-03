@@ -147,9 +147,11 @@ worse, not better; do not load `float` at all.
 ## E10. Last page columns wildly uneven
 
 `\balance` must appear in what will be the **first column of the last page**.
-Issued in the second column, the package prints a warning and does nothing. It
-also misbehaves around floats and footnotes. Compile once unbalanced, see where
-the last page starts, then place `\balance`.
+Issued from the second column it does nothing and prints
+`Package balance Warning: You have called \balance in second column`, which the
+log gate counts. It also misbehaves around floats and footnotes. Compile once
+unbalanced and look at the last page: if both columns are already full, leave
+`\balance` out; otherwise place it in the first column of that page.
 
 ## E11. Two `References` headings
 
@@ -222,6 +224,78 @@ with. Do not reach for `\sloppy`. Widen the inter-character glue on the locale:
 The three values are base, stretch, shrink in ems. Keep the base at 0 so normal
 lines are unchanged. On a 12-page zh-Hant paper this took badness-10000 underfull
 warnings from 26 down to 5.
+
+## E20. `! Undefined control sequence` at `\XeLaTeX`, `\LuaLaTeX` or `\XeTeX`
+
+```
+! Undefined control sequence.
+<argument> ...ackage: Font selection for \XeLaTeX
+```
+
+These logos are not kernel macros; `metalogo` defines them. `\LaTeX` and `\TeX`
+are fine. Write the engine names as plain text, or `\usepackage{metalogo}`.
+Under `-halt-on-error` this is the first thing that stops a build, so it shows
+up before any font problem does.
+
+## E21. `Missing character: There is no 図 (U+56F3) in font "name:Noto Serif TC…"`
+
+Not the naming split of E2 — the font was found. It is a regional subset with a
+hole: Google's `Noto Serif TC` carries the Traditional Chinese repertoire and
+omits Japanese shinjitai forms such as 図, many simplified forms, and rare Han.
+The same log line appears for `Noto Sans TC` when the glyph sits in `\texttt`
+or a Verbatim block. The build exits 0 and the character is simply absent from
+the page.
+
+Check coverage before relying on a glyph:
+
+```bash
+fc-list ':charset=56f3' family      # who has U+56F3?
+```
+
+The template handles this automatically: `\PickFont* \CJKFallback` looks for a
+wider font (full-repertoire Noto Sans CJK, Microsoft JhengHei, Yu Gothic) and,
+when one exists, attaches it to `rm`, `sf` and `tt` through luaotfload:
+
+```latex
+\directlua{luaotfload.add_fallback("cjkfallback", {"Microsoft JhengHei:mode=harf;"})}
+\babelfont[chinese-traditional]{rm}[..., RawFeature={fallback=cjkfallback}]{Noto Serif TC}
+```
+
+Both this and an explicit switch — `\newfontfamily\ja{Microsoft JhengHei}` then
+`{\ja 図}` — were tested under babel's `onchar=ids fonts` and both survive it;
+the fallback needs no markup in the text. One limit: a fallback glyph inside
+bold text renders at the second font's regular weight.
+
+## E22. `Overfull \hbox (36pt too wide)` on a line with `\verb|…|`, or `Underfull` badness 6000–10000 around `\texttt`
+
+```
+Overfull \hbox (36.32518pt too wide) in paragraph at lines 334--335
+[]\TU/NotoSansMono(0)/m/n/10 \babelprovide[import, onchar=ids fonts]{chinese-
+```
+
+Inline `\verb` cannot break. Past roughly 40 characters it overflows a column,
+and the lines before it go loose trying to avoid that, which is where the
+accompanying `Underfull` comes from. Move the command into a display `Verbatim`
+block; a long command may be split over two lines, with an argument starting on
+the next line:
+
+```latex
+\begin{Verbatim}
+\babelprovide[import, onchar=ids fonts]
+             {chinese-traditional}
+\end{Verbatim}
+```
+
+A run of three `\texttt{}` tokens joined by 、 produces the same `Underfull`
+without any overflow. Spread the tokens across the sentence instead of listing
+them back to back.
+
+## E23. `Package caption Warning: Unused \captionsetup[subfigure]`
+
+The template preamble configures subfigure captions. A document that ends up
+with no `subfigure` environment never consumes that setup, and `caption`
+reports it — one line, but the log gate counts it. Either keep a subfigure or
+delete the `\captionsetup[subfigure]{…}` line from your copy of the preamble.
 
 ---
 
