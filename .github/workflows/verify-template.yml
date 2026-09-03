@@ -10,10 +10,14 @@ on:
     branches: [main]
     paths:
       - 'references/template.tex'
+      - 'examples/**'
+      - 'scripts/log-gate.sh'
       - '.github/workflows/verify-template.yml'
   pull_request:
     paths:
       - 'references/template.tex'
+      - 'examples/**'
+      - 'scripts/log-gate.sh'
       - '.github/workflows/verify-template.yml'
   workflow_dispatch:
 
@@ -48,30 +52,42 @@ jobs:
         run: latexmk -lualatex -interaction=nonstopmode -halt-on-error template.tex
 
       - name: Fail on any warning
-        working-directory: references
-        run: |
-          log=template.log
-          fail=0
-          for pattern in 'Missing character' 'Font shape .* undefined' 'Overfull' 'Underfull'; do
-            n=$(grep -c "$pattern" "$log" || true)
-            printf '%-30s %s\n' "$pattern" "$n"
-            if [ "$n" -ne 0 ]; then
-              fail=1
-              grep -n "$pattern" "$log" | head -10
-            fi
-          done
-          w=$(grep -cE '^(LaTeX|Package|Class) .*Warning' "$log" || true)
-          printf '%-30s %s\n' 'LaTeX/Package/Class Warning' "$w"
-          if [ "$w" -ne 0 ]; then
-            fail=1
-            grep -E '^(LaTeX|Package|Class) .*Warning' "$log" | sort -u
-          fi
-          exit $fail
+        run: sh scripts/log-gate.sh references/template.log
 
-      - name: Upload PDF
+      # Real documents exercise more of the template than its own demo body.
+      # Each example is re-assembled against the current template, so a
+      # template change that breaks a document fails here, before it merges.
+      #
+      # The committed main.tex must match what assemble.sh produces: it is the
+      # standalone file people copy, and a template or body change that forgot
+      # to regenerate it would otherwise be repaired here silently and merged
+      # stale. Compared with cmp rather than git diff so the check does not
+      # depend on the checkout having a .git directory inside the container.
+      - name: Assemble and compile the examples against the current template
+        run: |
+          for dir in examples/*/; do
+            name=$(basename "$dir")
+            if [ ! -f "$dir/main.tex" ]; then
+              echo "::error::$dir/main.tex is not committed - run 'sh examples/assemble.sh $name' and commit it"
+              exit 1
+            fi
+            cp "$dir/main.tex" /tmp/committed-main.tex
+            sh examples/assemble.sh "$name"
+            if ! cmp -s /tmp/committed-main.tex "$dir/main.tex"; then
+              echo "::error::$dir/main.tex is stale - run 'sh examples/assemble.sh $name' and commit the result"
+              diff /tmp/committed-main.tex "$dir/main.tex" | head -20
+              exit 1
+            fi
+            ( cd "$dir" && latexmk -lualatex -interaction=nonstopmode -halt-on-error main.tex )
+            sh scripts/log-gate.sh "$dir/main.log"
+          done
+
+      - name: Upload PDFs
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: template-pdf
-          path: references/template.pdf
+          name: pdfs
+          path: |
+            references/template.pdf
+            examples/*/main.pdf
           if-no-files-found: warn

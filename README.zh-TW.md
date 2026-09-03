@@ -90,7 +90,7 @@ exit code 是 0 不代表文件沒問題。`Missing character` 的意思是有�
 | `Too many unprocessed floats` | 補一個 `\FloatBarrier` |
 | `There were undefined references` | 再跑一次就好 |
 
-`references/troubleshooting.md` 收了 23 條錯誤，每條都附實際會出現的 log 片段、成因與修法。
+`references/troubleshooting.md` 收了 24 條錯誤，每條都附實際會出現的 log 片段、成因與修法。
 
 ## 中文行文
 
@@ -108,6 +108,8 @@ exit code 是 0 不代表文件沒問題。`Missing character` 的意思是有�
 | `scripts/check-fonts.ps1`、`.sh` | 列出候選字型家族裝了哪些 |
 | `scripts/build.ps1` | 給沒裝 TeX 的機器用的容器化編譯 |
 | `scripts/package-skill.ps1` | 打包成安裝程式吃得下的 `.skill` 檔 |
+| `scripts/log-gate.sh` | 對 log 做五項計數，任一非零即失敗 |
+| `examples/` | 用這個 skill 寫成的完整文件，CI 每次都對著目前的範本重編 |
 
 ## 驗證
 

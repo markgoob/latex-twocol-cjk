@@ -1,0 +1,621 @@
+% !TeX program = lualatex
+% =============================================================================
+% TEMPLATE: IEEE-Style Two-Column CJK Technical Document (LuaLaTeX + babel)
+%
+% ENGINE: LuaLaTeX, not XeLaTeX.  babel's `onchar=ids fonts` — the mechanism
+% that switches fonts per character between CJK and Latin — is documented as
+% LuaTeX-only.  Under XeLaTeX the option is silently inert: the main language's
+% font takes the whole document and no per-script switching happens.
+% See references/troubleshooting.md, entry E1, for the XeLaTeX-only fallback.
+%
+% Copy everything above the TITLE & AUTHORS section marker into your document.
+% The block between that marker and "END PREAMBLE" is the example title, author and date:
+% write your own there, plus a second \hypersetup{pdftitle=..., pdfauthor=...}
+% (later keys override the placeholders set further up).
+% =============================================================================
+
+\documentclass[10pt, a4paper, twocolumn]{article}
+\usepackage[a4paper, top=2cm, bottom=2cm, left=1.5cm, right=1.5cm]{geometry}
+\setlength{\columnsep}{16pt}   % article default 10pt is too tight at this width
+
+\usepackage{fontspec}
+
+% --- LANGUAGES ---------------------------------------------------------------
+% English is the MAIN language, so \figurename/\tablename/\refname/\today stay
+% English ("Figure", "Table", "References") as IEEE requires.  Traditional
+% Chinese is a secondary locale reached automatically through onchar.
+%
+% Do NOT use the `japanese` locale for Chinese: babel has chinese-traditional
+% (zh-Hant) and chinese-simplified (zh-Hans).  The japanese locale would set
+% captions to 図/表/参考文献 and dates to Japanese format.
+%
+% For Simplified Chinese: swap chinese-traditional -> chinese-simplified.
+% For Japanese:           swap chinese-traditional -> japanese.
+% For Korean:             swap chinese-traditional -> korean  (also needs a KR
+%                         font below; Korean line-breaks on spaces, not chars).
+% intraspace widens the glue babel sets between Han characters.  The default
+% stretch is too small once a narrow two-column page also carries unbreakable
+% \texttt{} identifiers: on a 12-page zh-Hant paper, underfull \hbox warnings at
+% badness 10000 fell from 26 to 5 with this one change.  Keep the base at 0 so
+% normal lines are untouched; only the stretch and shrink move.
+\usepackage[english, provide=*]{babel}
+\babelprovide[import, onchar=ids fonts,
+              intraspace={0 .22 .10}]{chinese-traditional}
+
+% Ellipses.  onchar assigns a character to a locale by its script, and both
+% ellipsis code points are script "Common", so they stay in the Latin font:
+% Noto Serif has no U+22EF at all (the glyph is silently dropped) and sets
+% U+2026 as low Latin dots.  Route both to the Chinese locale so 「⋯⋯」 and
+% 「……」 come from the CJK font, centred, as Chinese typography expects.
+% In English sentences write \ldots instead of typing the character.
+\babelcharproperty{"2026}{locale}{chinese-traditional}
+\babelcharproperty{"22EF}{locale}{chinese-traditional}
+
+% --- FONT SELECTION WITH FALLBACK -------------------------------------------
+% Font family names differ by distribution channel.  The same typeface ships as
+% "Noto Serif CJK TC" (noto-cjk repo, Linux packages, Overleaf) and as
+% "Noto Serif TC" (Google Fonts, which is what a Windows user usually installs).
+% Hard-coding one name makes fontspec abort with a FATAL "font cannot be found".
+% \PickFont walks a list and takes the first family actually installed.
+% \PickFont* is the quiet form for optional fonts: when nothing on the list is
+% installed it writes an Info line to the log instead of a Warning.
+\ExplSyntaxOn
+\NewDocumentCommand \PickFont { s m m }
+  {
+    \tl_clear_new:N #2
+    \clist_map_inline:nn {#3}
+      { \tl_if_empty:NT #2 { \IfFontExistsTF {##1} { \tl_set:Nn #2 {##1} } { } } }
+    \tl_if_empty:NT #2
+      {
+        \IfBooleanTF {#1}
+          { \msg_info:nnn    { template } { nofont } {#3} }
+          { \msg_warning:nnn { template } { nofont } {#3} }
+      }
+  }
+\msg_new:nnn { template } { nofont }
+  { None~of~these~fonts~is~installed:~#1~--~run~scripts/check-fonts~. }
+\ExplSyntaxOff
+
+\PickFont \LatinSerif {Noto Serif, TeX Gyre Termes, Times New Roman, DejaVu Serif}
+\PickFont \LatinSans  {Noto Sans, TeX Gyre Heros, Arial, DejaVu Sans}
+\PickFont \LatinMono  {Noto Sans Mono, DejaVu Sans Mono, Consolas, Courier New}
+\PickFont \CJKSerif   {Noto Serif CJK TC, Noto Serif TC, Source Han Serif TC,
+                       PMingLiU, MingLiU, Microsoft JhengHei}
+\PickFont \CJKSans    {Noto Sans CJK TC, Noto Sans TC, Source Han Sans TC,
+                       Microsoft JhengHei, PMingLiU}
+\PickFont \CJKMono    {Noto Sans Mono CJK TC, Noto Sans TC, Microsoft JhengHei,
+                       MingLiU}
+
+% THE WEIGHT-AXIS TRAP.  Google Fonts ships Noto TC as ONE variable file
+% (NotoSerifTC-VF.ttf) whose first named instance is styled "ExtraLight,Regular"
+% at weight 40.  Asking for the family by name therefore lands on ExtraLight:
+% Chinese body text renders visibly thinner than the Latin beside it, with no
+% warning at all.  Rendering the same text grey and measuring ink coverage gives
+% roughly 1.0 : 1.3 : 1.8 for default : wght=400 : wght=700 (absolute numbers
+% depend on point size and DPI; the ratio is the signal).  The cleanest proof:
+% an explicit wght=200 render is BYTE-IDENTICAL to the unpinned one, and 200 is
+% the ExtraLight end of the axis.
+%
+% Do not try to check this with pdffonts.  Subset names come from the base
+% font's PostScript name, so a correctly pinned run still reports
+% "NotoSerifTC-ExtraLight".  Measure the rendered ink instead.
+%
+% Pinning the axis fixes it, gives a REAL bold instead of a smeared fake one,
+% and is silently ignored by static families (verified on PMingLiU and
+% Microsoft JhengHei), so the same line is safe whichever font \PickFont found.
+% CJK families have no italic and no small caps, so all four faces plus sc are
+% mapped back onto the same file: FakeSlant supplies IEEE's \itshape headings,
+% and SmallCapsFont stops \scshape (used on every \section) from emitting
+% "Font shape .../m/sc undefined".  Note the remaining visual caveat: in a
+% section title mixing scripts, the Latin half small-caps and the Chinese half
+% cannot — for mostly-Chinese headings, swap \scshape for \bfseries below.
+%
+% All three families must be declared for BOTH scripts.  Declaring only rm —
+% the common mistake — leaves CJK inside \texttt, Verbatim blocks and
+% \sffamily TikZ node labels in a Latin font with no CJK glyphs; those
+% characters are then dropped from the PDF with only a log warning.
+\babelfont{rm}[Ligatures=TeX]{\LatinSerif}
+\babelfont{sf}[Ligatures=TeX]{\LatinSans}
+\babelfont{tt}{\LatinMono}
+
+\newcommand{\CJKaxis}[1]{
+  UprightFeatures    = {RawFeature={axis={wght=400}}},
+  BoldFont           = {*},
+  BoldFeatures       = {RawFeature={axis={wght=#1}}},
+  ItalicFont         = {*},
+  ItalicFeatures     = {RawFeature={axis={wght=400}}, FakeSlant=0.2},
+  BoldItalicFont     = {*},
+  BoldItalicFeatures = {RawFeature={axis={wght=#1}}, FakeSlant=0.2},
+  SmallCapsFont      = {*},
+  SmallCapsFeatures  = {RawFeature={axis={wght=400}}}
+}
+
+% --- GLYPH FALLBACK (auto-detected) -----------------------------------------
+% Regional subsets have holes.  Google's "Noto Serif TC" has no Japanese
+% shinjitai 図 (U+56F3) and skips many simplified forms; a glyph the font lacks
+% is dropped from the PDF with one "Missing character" log line and a clean
+% exit.  luaotfload can hand such glyphs to a second font.  The candidates
+% below cover both platforms: full-repertoire Noto CJK on Linux/Overleaf,
+% Microsoft JhengHei or Yu Gothic on Windows.  If none is installed, nothing is
+% declared and the template behaves exactly as before.
+% Verified through babel's onchar: the fallback fires inside rm, sf and tt.
+% Limit: a fallback glyph inside bold text comes out at the second font's
+% regular weight.
+\PickFont* \CJKFallback {Noto Sans CJK TC, Source Han Sans TC, Microsoft JhengHei,
+                         Noto Sans CJK JP, Yu Gothic}
+\expandafter\IfBlankTF\expandafter{\CJKFallback}
+  {\newcommand{\CJKfallbackkeys}{}}
+  {\directlua{luaotfload.add_fallback("cjkfallback", {"\CJKFallback:mode=harf;"})}%
+   \newcommand{\CJKfallbackkeys}{, RawFeature={fallback=cjkfallback}}}
+
+\babelfont[chinese-traditional]{rm}[\CJKaxis{700}\CJKfallbackkeys]{\CJKSerif}
+\babelfont[chinese-traditional]{sf}[\CJKaxis{700}\CJKfallbackkeys]{\CJKSans}
+\babelfont[chinese-traditional]{tt}[\CJKaxis{700}\CJKfallbackkeys]{\CJKMono}
+
+% --- CORE PACKAGES -----------------------------------------------------------
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{siunitx}      % S columns: decimal-aligned numeric benchmark data
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{placeins}     % \FloatBarrier
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, calc, fit, backgrounds}
+\usepackage{fancyvrb}
+\usepackage{balance}
+\usepackage{microtype}    % protrusion; measurably fewer overfull lines in
+                          % narrow justified columns
+\usepackage{xurl}         % URL line-breaking in narrow columns
+% hyperref goes near the END of the preamble, then bookmark.  Loading it before
+% titlesec/placeins/fancyhdr (as the previous version did) is against hyperref's
+% documented ordering and misplaces anchors on unnumbered sections.
+\usepackage{hyperref}
+\usepackage{bookmark}
+
+% Ragged right in narrow tabularx cells; justified text in a 2 cm column
+% produces huge inter-word gaps or overfull boxes.
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\sisetup{detect-all, table-number-alignment = center}
+
+\fvset{fontsize=\scriptsize}
+\setlist[itemize]{label=--, leftmargin=*, nosep}
+\setlist[enumerate]{leftmargin=*, nosep}
+
+% --- IEEE NUMBERING ----------------------------------------------------------
+% \thesection must be redefined, not just the titlesec label.  Otherwise
+% \ref{sec:x} prints "2" while the heading shows "II.".
+\renewcommand{\thesection}{\Roman{section}}
+\renewcommand{\thesubsection}{\thesection-\Alph{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
+\renewcommand{\thetable}{\Roman{table}}
+\setcounter{secnumdepth}{4}
+
+% --- IEEE HEADING HIERARCHY --------------------------------------------------
+% NOTE ON \scshape AND \itshape: CJK fonts have neither a small-caps nor an
+% italic shape.  A Chinese section title under \scshape silently falls back to
+% the upright shape, so a mixed title renders half small-capped and half plain.
+% For a document whose headings are mostly Chinese, replace \scshape with
+% \bfseries and \itshape with \bfseries below.
+\titleformat{\section}[block]
+  {\centering\normalsize\scshape}{\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.2ex plus 0.5ex}{0.8ex plus 0.2ex}
+
+\titleformat{\subsection}[block]
+  {\normalsize\itshape}{\Alph{subsection}.}{0.5em}{}
+\titlespacing*{\subsection}{0pt}{1ex plus 0.3ex}{0.5ex plus 0.1ex}
+
+\titleformat{\subsubsection}[runin]
+  {\normalsize\itshape}{\arabic{subsubsection})}{0.5em}{}[:]
+\titlespacing*{\subsubsection}{\parindent}{0.8ex plus 0.2ex}{0.5em}
+
+\titleformat{\paragraph}[runin]          % IEEE level 4: "a) label:"
+  {\normalsize\itshape}{\alph{paragraph})}{0.5em}{}[:]
+\titlespacing*{\paragraph}{2em}{0.6ex plus 0.2ex}{0.5em}
+
+% --- IEEE CAPTIONS -----------------------------------------------------------
+% Without this the article default renders "Figure 1: ..." with a colon at body
+% size.  IEEE is "Fig. 1." below figures, and a centred "TABLE I" line with the
+% title in small caps above tables.
+\captionsetup[figure]{name={Fig.}, labelsep=period, font=footnotesize,
+                      justification=raggedright, singlelinecheck=true}
+\captionsetup[table]{labelsep=newline, font=footnotesize, textfont=sc,
+                     justification=centering, name={TABLE}}
+\captionsetup[subfigure]{labelformat=parens, labelsep=space, font=footnotesize}
+\renewcommand{\thefigure}{\arabic{figure}}
+
+% --- IEEE ABSTRACT & KEYWORDS ------------------------------------------------
+% The environments emit the "Abstract—" and "Index Terms—" labels themselves.
+% Do NOT type the label again in the body.
+\renewenvironment{abstract}
+  {\par\noindent\small\textbf{\textit{Abstract}---}\bfseries\ignorespaces}
+  {\par\vspace{0.5em}}
+
+\newenvironment{IEEEkeywords}
+  {\par\noindent\small\textbf{\textit{Index Terms}---}\bfseries\ignorespaces}
+  {\par\vspace{1em}\noindent\rule{\linewidth}{0.4pt}\par\vspace{0.5em}}
+
+% Chinese abstract, for the 中英雙摘要 layout Taiwanese venues expect.
+% Delete if the document is English-only.
+\newenvironment{cnabstract}
+  {\par\noindent\small\textbf{摘要---}\bfseries\ignorespaces}
+  {\par\vspace{0.5em}}
+\newenvironment{cnkeywords}
+  {\par\noindent\small\textbf{關鍵詞---}\bfseries\ignorespaces}
+  {\par\vspace{1em}}
+
+% --- HEADER / FOOTER ---------------------------------------------------------
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0pt}   % 0.4pt would draw a bare rule above an
+                                     % empty header on every page
+% To use a running header, uncomment both lines below AND set headrulewidth
+% back to 0.4pt:
+% \fancyhead[L]{\small Journal / Conference Name}
+% \fancyhead[R]{\small Vol.~X, No.~Y, Month Year}
+
+% --- FLOAT PLACEMENT TUNING (CRITICAL for two-column) ------------------------
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.8}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+
+% --- HYPERLINKS & PDF METADATA -----------------------------------------------
+% pdftitle must be plain text: it cannot be derived from \title here because
+% \title contains \textbf and \\.
+\hypersetup{
+    colorlinks   = true,
+    linkcolor    = blue!70!black,
+    urlcolor     = blue!70!black,
+    citecolor    = blue!70!black,
+    pdftitle     = {Paper Title Here},
+    pdfauthor    = {First A. Author; Second B. Author},
+    pdfsubject   = {Technical report},
+    pdfkeywords  = {keyword one, keyword two},
+    bookmarksnumbered = true,
+    bookmarksopen     = true,
+}
+
+% ---- Document-specific additions to the shared preamble ---------------------
+\hypersetup{
+    pdftitle    = {latex-twocol-cjk: A Claude Skill for IEEE-Style Two-Column CJK-Latin Documents},
+    pdfauthor   = {markgoob},
+    pdfsubject  = {Introduction to the latex-twocol-cjk skill},
+    pdfkeywords = {Claude skill, LuaLaTeX, babel, fontspec, CJK, Traditional Chinese},
+}
+
+% Headings are mostly Chinese: \bfseries instead of \scshape / \itshape (SKILL.md §4).
+\titleformat{\section}[block]
+  {\centering\normalsize\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}[block]
+  {\normalsize\bfseries}{\Alph{subsection}.}{0.5em}{}
+
+% Extra TikZ libraries for the diagrams in this document.
+\usetikzlibrary{shapes.geometric, decorations.pathreplacing}
+
+\title{\textbf{latex-twocol-cjk: A Claude Skill for IEEE-Style\\
+Two-Column CJK--Latin Documents\\[2pt]
+latex-twocol-cjk：中英混排雙欄技術文件的 Claude skill}}
+\author{
+  markgoob\\
+  latex-twocol-cjk 專案\\
+  \texttt{https://github.com/markgoob/latex-twocol-cjk}
+}
+\date{}
+
+% ============================== END PREAMBLE =================================
+\begin{document}
+\raggedbottom
+
+\twocolumn[
+  \begin{@twocolumnfalse}
+    \maketitle
+    \vspace{-1.5em}
+
+    \begin{abstract}
+    latex-twocol-cjk is a Claude skill for A4, two-column, IEEE-style documents that mix Traditional Chinese with English: internal whitepapers, technical reports, course papers. It packages a LuaLaTeX preamble that compiles with zero warnings under both Noto font naming conventions, a troubleshooting file that maps 24 real log messages to causes and fixes, and four scripts for font checking, containerised building, log gating and packaging. This note introduces the skill: what is in the package, the three-layer structure of a document built from it, the design decisions in the preamble and the failure each one prevents, the source-formatting and prose rules specific to Chinese text, and how every change is verified by a log gate that fails on any warning rather than on exit code alone. It closes with the known limits: the output is IEEE-styled, not IEEE-submittable. This PDF was produced with the skill and passes the same gate.
+    \end{abstract}
+
+    \begin{IEEEkeywords}
+    Claude skill, LuaLaTeX, babel, fontspec, CJK typesetting, Traditional Chinese, reproducible builds
+    \end{IEEEkeywords}
+
+    \begin{cnabstract}
+    latex-twocol-cjk 是一個 Claude skill，用來寫 A4 雙欄、IEEE 風格、中文夾英文的技術文件：內部白皮書、技術報告、課堂論文。套件包含一份在兩套 Noto 字型命名慣例下都以零警告編譯的 LuaLaTeX preamble、一份把 24 條真實 log 訊息對應到成因與修法的錯誤對照表，以及檢查字型、容器內編譯、log 閘門、打包用的四支腳本。本文介紹這個 skill：套件裡有什麼、用它寫出來的文件分成哪三層、preamble 裡每個設計決策各擋掉哪一種失敗、中文原始碼與行文的專屬規則，以及每次改動如何用「任何警告即失敗」的 log 閘門驗證，而不是只看 exit code。最後列出已知限制：產出是 IEEE 風格，不是可投稿的格式。這份 PDF 本身就由這個 skill 產出，並通過同一道閘門。
+    \end{cnabstract}
+
+    \begin{cnkeywords}
+    Claude skill、LuaLaTeX、babel、fontspec、中日韓排版、繁體中文、可重現建置
+    \end{cnkeywords}
+  \end{@twocolumnfalse}
+]
+
+% =============================================================================
+\section{這個 skill 是什麼}
+\label{sec:what}
+
+Claude 的 skill 是一組寫在 \texttt{SKILL.md} 裡的工作指引，加上它引用的參考檔與腳本。使用者提出符合描述的需求時，模型先載入這組指引再動手。latex-twocol-cjk 針對的是一種很具體的文件：A4 雙欄、IEEE 風格、中文內文夾英文術語的技術報告、白皮書與課堂論文。它把一份驗證過的 LuaLaTeX 範本、一份錯誤對照表和四支腳本包在一起，讓模型寫這類文件時不必每次重新摸索字型與版面。
+
+這個 skill 有一段該交代的來歷。第一版建在 XeLaTeX 加 \texttt{bidi=basic} 的設定上，而那個組合根本產不出 PDF；第二版改用 LuaLaTeX 重寫，才有了現在這份範本。之後的每一次改動都要通過同一套 log 閘門，範本自己在兩套字型命名慣例下都維持零警告。目前版本是 v1.1.0，以 MIT 授權公開~\cite{repo}，並附繁體中文說明~\cite{repo-zh}。
+
+適用範圍要先講清楚。範本建在 \texttt{article} 上而不是 IEEEtran，產出看起來像 IEEE 論文，適合內部報告與課堂論文；它不是可以投稿的 camera-ready 格式，邊界、摘要寬度、圖說度量都與投稿規格不同。真要投稿，請用 IEEEtran 並只移植字型那一段。
+
+\section{套件內容}
+\label{sec:contents}
+
+套件只有八個檔案（Table~\ref{tab:files}）。\texttt{SKILL.md} 是規則本體，九個編號章節按寫文件的實際順序排列：引擎與語系、字型、標題區、標題與交叉引用、浮動體、圖與表、程式碼與數學與 TikZ、中文原始碼的兩條規則、中文行文，再加一節「不改範本就擴充 preamble」與一節編譯驗證。每條規則都附理由，因為多數規則單看會覺得多餘，知道它擋掉哪個失敗才會照做。
+
+\begin{table}[!t]
+\centering
+\caption{套件內的檔案與用途}
+\label{tab:files}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{檔案} & \textbf{用途} \\
+\midrule
+\texttt{SKILL.md} & 規則本體，按寫文件的順序排列 \\
+\texttt{references/template.tex} & 完整且驗證過的文件；preamble 直接複製 \\
+\texttt{references/troubleshooting.md} & 24 條錯誤：log 原文、成因、修法 \\
+\texttt{scripts/check-fonts.ps1}、\texttt{.sh} & 列出候選字型家族裝了哪些 \\
+\texttt{scripts/build.ps1} & 沒裝 TeX 的機器用的容器化編譯 \\
+\texttt{scripts/log-gate.sh} & 對 log 做五項計數，任一非零即失敗 \\
+\texttt{scripts/package-skill.ps1} & 打包成安裝程式接受的 \texttt{.skill} 檔 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\texttt{template.tex} 不只是 preamble，它本身是一份完整可編譯的兩頁文件，示範了範本支援的每一種元素：中英雙摘要、TikZ 架構圖、子圖、siunitx 對齊的數值表、帶中文註解的 Verbatim、方程式、中文參考文獻。不用 Claude 也能拿它當一般 LaTeX 範本。
+
+\texttt{troubleshooting.md} 的每一條都從實際出現過的 log 訊息出發，例如 \texttt{Missing character}、\texttt{Font shape undefined}、babel 的 bidi 錯誤、fontspec 的 font cannot be found，再說成因與修法。它的價值在於「先搜 log 原文」這個入口：使用者看到的永遠是訊息，不是成因。
+
+\section{使用流程}
+\label{sec:workflow}
+
+用這個 skill 寫出來的文件分成三層（Fig.~\ref{fig:layers}）。第一層是範本的 preamble，從檔案開頭複製到 \texttt{TITLE \& AUTHORS} 標記為止，一個字都不改。第二層是文件自己的設定：第二個 \verb|\hypersetup| 蓋掉佔位的 PDF metadata，需要的話再覆寫標題格式或補 TikZ 函式庫。第三層才是內文。
+
+\begin{figure}[!t]
+\centering
+\resizebox{0.92\columnwidth}{!}{%
+\begin{tikzpicture}[
+  layer/.style={draw=blue!50!cyan!60, fill=blue!6, rounded corners=4pt,
+    minimum width=5.2cm, minimum height=1.05cm, font=\sffamily\small,
+    text=blue!60!black, line width=0.6pt, align=center},
+  own/.style={layer, draw=green!50!black!60, fill=green!6, text=green!40!black},
+  note/.style={font=\sffamily\scriptsize, text=black!60, align=left, anchor=west}]
+\node[layer] (p) {範本 preamble\\[-1pt]{\scriptsize 複製到 TITLE \& AUTHORS 標記為止}};
+\node[own, below=0.3cm of p] (o) {文件自己的設定\\[-1pt]{\scriptsize \textbackslash hypersetup、\textbackslash title、\textbackslash titleformat 覆寫}};
+\node[own, below=0.3cm of o] (b) {內文\\[-1pt]{\scriptsize 標題區、章節、圖表、參考文獻}};
+\node[note, right=0.35cm of p] {逐字複製，\\不修改};
+\node[note, right=0.35cm of o] {後定義者勝，\\覆寫佔位值};
+\node[note, right=0.35cm of b] {中文段落\\在原始碼裡單行};
+\draw[decorate, decoration={brace, amplitude=5pt, mirror}, black!40, line width=0.6pt]
+  ([xshift=-0.3cm]o.north west) -- ([xshift=-0.3cm]b.south west)
+  node[midway, xshift=-0.55cm, font=\sffamily\scriptsize, text=black!60, rotate=90, anchor=south] {你寫的部分};
+\end{tikzpicture}%
+}
+\caption{用 skill 寫出的文件分三層。只有第一層來自範本，而且是原封不動地複製；後兩層屬於文件本身。}
+\label{fig:layers}
+\end{figure}
+
+骨架長這樣：
+\begin{Verbatim}
+% 1. 範本 preamble，複製到 TITLE & AUTHORS 標記為止
+% 2. 自己的 \hypersetup、\title、\author、\date{}
+\begin{document}
+\raggedbottom
+\twocolumn[ ... 標題、摘要、關鍵詞 ... ]
+% 3. 內文
+\end{document}
+\end{Verbatim}
+
+編譯之前先跑字型檢查，因為缺一個家族是 fatal error 而不是警告，早發現省時間。之後用 latexmk 編譯；本機沒裝 TeX 的話，\texttt{build.ps1} 會在 TeX Live 容器內編譯並掛載主機的字型目錄，看到的是使用者實際擁有的字型環境（Fig.~\ref{fig:flow}）。
+\begin{Verbatim}
+scripts\check-fonts.ps1                       # Windows
+latexmk -lualatex -interaction=nonstopmode main.tex
+scripts\build.ps1 main.tex                    # 沒裝 TeX 時
+\end{Verbatim}
+Overleaf 會忽略 \texttt{\% !TeX program} 那行，得手動把編譯器切成 LuaLaTeX；它的 TeX Live 已內建 Noto CJK 字型。
+
+\begin{figure*}[!t]
+\centering
+\begin{subfigure}[t]{0.47\textwidth}
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[node distance=0.4cm,
+    stage/.style={draw=blue!50!cyan!60, fill=blue!6, rounded corners=4pt,
+      minimum width=2.5cm, minimum height=0.7cm, font=\sffamily\small,
+      text=blue!60!black, line width=0.6pt, align=center},
+    io/.style={stage, draw=black!40, fill=white, text=black!80},
+    arr/.style={->, >=Stealth, black!50, line width=0.6pt}]
+  \node[io] (a) {check-fonts};
+  \node[stage, right=of a] (b) {寫 body\\[-1pt]{\scriptsize 中文段落單行}};
+  \node[stage, right=of b] (c) {latexmk\\[-1pt]{\scriptsize 或 build.ps1}};
+  \node[io, right=of c] (d) {PDF};
+  \draw[arr] (a) -- (b); \draw[arr] (b) -- (c); \draw[arr] (c) -- (d);
+  \end{tikzpicture}}
+  \caption{撰寫與編譯}
+  \label{fig:flow-a}
+\end{subfigure}\hfill
+\begin{subfigure}[t]{0.47\textwidth}
+  \centering
+  \resizebox{\linewidth}{!}{%
+  \begin{tikzpicture}[node distance=0.5cm,
+    stage/.style={draw=blue!50!cyan!60, fill=blue!6, rounded corners=4pt,
+      minimum width=2.6cm, minimum height=0.7cm, font=\sffamily\small,
+      text=blue!60!black, line width=0.6pt, align=center},
+    dec/.style={diamond, aspect=2.2, draw=red!50, fill=red!5, font=\sffamily\small,
+      text=red!60!black, line width=0.6pt, inner sep=1pt},
+    ok/.style={stage, draw=green!50!black!60, fill=green!6, text=green!40!black},
+    arr/.style={->, >=Stealth, black!50, line width=0.6pt},
+    lbl/.style={font=\sffamily\scriptsize, text=black!55}]
+  \node[stage] (c) {編譯};
+  \node[stage, right=of c] (g) {grep log\\[-1pt]{\scriptsize 五項計數}};
+  \node[dec, right=of g] (q) {全為零？};
+  \node[ok, right=of q] (y) {交付};
+  \node[stage, below=0.55cm of q] (n) {修正};
+  \draw[arr] (c) -- (g); \draw[arr] (g) -- (q);
+  \draw[arr] (q) -- node[lbl, above] {是} (y);
+  \draw[arr] (q) -- node[lbl, right] {否} (n);
+  \draw[arr] (n) -| (c);
+  \end{tikzpicture}}
+  \caption{log 閘門}
+  \label{fig:flow-b}
+\end{subfigure}
+\caption{工作流程。(a) 先查字型再寫再編；(b) 編譯後不看 exit code，而是對 log 做五項計數，任何一項非零就回頭修。}
+\label{fig:flow}
+\end{figure*}
+
+\section{範本裡的設計決策}
+\label{sec:design}
+
+preamble 裡每一個不尋常的設定都對應一個實際發生過的失敗（Table~\ref{tab:design}）。這一節挑最要緊的幾個說明。
+
+\begin{table}[!t]
+\centering
+\caption{設計決策與它擋掉的失敗}
+\label{tab:design}
+\small
+\begin{tabularx}{\columnwidth}{@{}Y Y@{}}
+\toprule
+\textbf{決策} & \textbf{擋掉的失敗} \\
+\midrule
+LuaLaTeX，不用 XeLaTeX & \texttt{bidi=basic} 的硬錯誤；\texttt{onchar} 安靜失效 \\
+\texttt{english} 主語言，中文為次語言 & 圖說變成 図、表、参考文献，日期成日式 \\
+\texttt{\textbackslash PickFont} 候選鏈 & 兩套 Noto 命名造成 font cannot be found \\
+釘住 \texttt{wght} 軸 & 可變字型預設實例是 ExtraLight \\
+rm、sf、tt 三家族雙語系宣告 & \texttt{\textbackslash texttt}、Verbatim、TikZ 裡的中文消失 \\
+luaotfload 字形後備 & 區域子集缺字，例如日文的 図 \\
+caption 套件設定 & article 預設的「Figure 1:」 \\
+重定義 \texttt{\textbackslash thesection} & 標題印 II，內文印 Section 2 \\
+\texttt{\textbackslash raggedbottom} 與浮動體參數 & 浮動體周圍的大片空白 \\
+\texttt{intraspace=\{0 .22 .10\}} & 中文行的 badness 10000 underfull \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{引擎與語系}
+
+babel 的 \texttt{onchar=ids fonts} 是整套設定的核心：遇到漢字切中文字型，遇到拉丁字母切回西文字型。它只有 LuaTeX 支援~\cite{babel}，在 XeLaTeX 下不報錯但從未生效；同一份常見設定裡的 \texttt{bidi=basic} 更是直接讓 babel 停機。範本因此指定 LuaLaTeX，並且不傳任何 \texttt{bidi=} 選項。
+
+主語言是 \texttt{english}，中文以 \texttt{chinese-traditional} 掛成次語言。這樣圖表標題與日期維持英文（IEEE 要的），漢字則拿到正確字型、斷行規則與 PDF 裡的 zh-Hant 標記。babel 內建 zh-Hant 與 zh-Hans 兩個語系，沒有理由拿 \texttt{japanese} 充數。
+
+\subsection{字型}
+
+字型是這個 skill 花最多篇幅的地方，因為它有三層坑。第一層是命名：同一套 Noto CJK 字型，noto-cjk 專案與 Linux 套件叫 Noto Serif CJK TC，Google Fonts 叫 Noto Serif TC，後者才是 Windows 使用者裝到的~\cite{notocjk}。範本用 \texttt{\textbackslash PickFont} 逐一探測候選家族，一路退到 Windows 內建的新細明體與微軟正黑體。
+
+第二層是權重。Google Fonts 版是單一可變字型檔，第一個具名實例是 ExtraLight；照家族名查找就會命中它，中文內文比旁邊的拉丁文字明顯細，log 完全沒有警告。範本把權重軸釘在 400，粗體釘在 700，順帶換到真正的粗體。靜態字型會忽略這個設定，所以同一行寫法對兩類字型都安全。
+
+第三層是覆蓋範圍。區域子集沒有日文新字體與許多簡體字形，缺的字會從 PDF 消失。v1.1.0 起範本會偵測覆蓋較廣的第二字型並以 luaotfload~\cite{luaotfload} 掛成字形後備；一個都沒有時只寫一行 Info，行為與之前相同。另外，三個家族都要對兩種文字系統宣告，否則 \texttt{\textbackslash texttt}、Verbatim 與 TikZ 標籤裡的中文會落到沒有漢字的西文字型。
+
+\subsection{IEEE 細節}
+
+IEEE 的圖說是「Fig. 1.」而不是 article 預設的「Figure 1:」，表格是置中的「TABLE I」加小型大寫標題，這些需要 caption 套件明確設定。\texttt{\textbackslash thesection} 要重新定義成羅馬數字，否則 titlesec 只改了標題顯示，內文的交叉引用仍印阿拉伯數字。雙欄版面另有一組浮動體參數與 \texttt{\textbackslash raggedbottom}，欄距設 16 pt，並載入 microtype 減少窄欄的溢出。
+
+\FloatBarrier
+\section{中文行文}
+\label{sec:prose}
+
+中文原始碼有兩條規則，都來自實際寫過的長文件。第一，不要在兩個漢字之間換行：TeX 在 tokenise 階段就把行尾變成空格，比 babel 看到文字更早，每個被編輯器折行的中文段落都會在 PDF 上留下句子中間的空格。本文的每個中文段落在原始碼裡都是一整行。第二，中英交界要自己打半形空格，babel 不像 xeCJK 會自動插入；這也正是第一條規則不能套用的地方。行距鬆散時該調的是語系的 \texttt{intraspace}，不是 \verb|\sloppy|。
+
+用字與標點的規範寫在 \texttt{SKILL.md} 第 9 節：臺灣用語而非大陸用語，中文句子裡用全形標點，半形標點只留給英文與英文之間。兩處是 LaTeX 特有的陷阱：反引號式的引號輸入會排成拉丁引號而不是「」，\verb|\ldots| 會排成拉丁省略號而不是⋯⋯。摘要最容易招來空話，第 9 節直接列出該刪的句型。如果同時裝了 be-human-v1~\cite{behuman}，散文的部分預設交給它，這個 skill 只保留影響版面的判斷；兩者互不相依。
+
+% \balance goes in the first column of the last page (SKILL.md §10); §VI is
+% where that column begins in the current layout. If the layout shifts and this
+% lands in the second column, the log gate catches the resulting warning.
+\balance
+\section{驗證與維護}
+\label{sec:verify}
+
+exit code 為 0 不代表文件正確。LuaLaTeX 找不到字型時照樣成功結束，只是把字丟掉。因此驗證的單位是 log：對五個模式計數，任何一項非零就算失敗。
+\begin{Verbatim}
+for p in 'Missing character' 'Font shape .* undefined' \
+         'Overfull' 'Underfull'; do
+  grep -c "$p" main.log
+done
+grep -cE '^(LaTeX|Package|Class) .*Warning' main.log
+\end{Verbatim}
+\texttt{build.ps1} 編完會直接印出這五個數字。GitHub Actions 在每次改動範本時跑同一套檢查，用的是 Debian 的 \texttt{fonts-noto-cjk}，也就是 Noto Serif CJK TC 那套命名；本機 Windows 用的是 Google Fonts 命名。兩邊各走候選鏈的一半（Table~\ref{tab:resolve}），所以兩條路徑都持續受測，一次 CI 約 1 分 45 秒。
+
+\begin{table}[!t]
+\centering
+\caption{兩個環境下各字型槽的實際解析結果}
+\label{tab:resolve}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\columnwidth}{@{}l Y Y@{}}
+\toprule
+\textbf{槽} & \textbf{Windows 11}\rlap{$^{\star}$} & \textbf{Debian CI} \\
+\midrule
+拉丁 rm & Noto Serif & Noto Serif \\
+拉丁 sf & Noto Sans & Noto Sans \\
+拉丁 tt & Noto Sans Mono & Noto Sans Mono \\
+中文 rm & Noto Serif TC & Noto Serif CJK TC \\
+中文 sf & Noto Sans TC & Noto Sans CJK TC \\
+中文 tt & Noto Sans TC & Noto Sans Mono CJK TC \\
+字形後備 & Microsoft JhengHei & Noto Sans CJK TC \\
+\bottomrule
+\end{tabularx}
+
+\vspace{4pt}
+\raggedright
+{\scriptsize $^{\star}$\,經 \texttt{build.ps1} 的容器加掛主機字型的結果。直接在 Windows 上跑 \texttt{check-fonts.ps1} 時，拉丁襯線會退到 Times New Roman，因為 Noto Serif 來自 TeX Live 的 noto 套件而非系統。}
+\end{table}
+
+打包也有一個坑。Windows PowerShell 5.1 的 \texttt{Compress-Archive} 會把反斜線寫進壓縮檔的路徑，安裝程式看到的是 Zip file contains path with invalid characters。\texttt{package-skill.ps1} 逐一手動建立條目並強制正斜線，寫檔前自我驗證：有反斜線、絕對路徑、目錄穿越，或根目錄缺 \texttt{SKILL.md}，就刪檔中止。Release 上的資產都由它產生，並另以 Linux 的 unzip 驗過。
+
+\section{限制}
+\label{sec:limits}
+
+有幾件事這個 skill 明確不做，或還沒做。產出不是可投稿的 IEEE 格式，這點前面說過。字形後備在粗體文字裡會以第二字型的常規字重印出。韓文需要另配 KR 字型，範本只給了語系名稱。書目只示範 thebibliography，混合語言書目該用的 biblatex 加 biber 路線只在規則裡提了一句。草稿模式（行號、浮水印）與 TikZ 外部化也還沒寫進去。混排標題若保留 \verb|\scshape|，英文半邊會變小型大寫而中文半邊維持原樣，範本的建議是換成 \verb|\bfseries|，本文照做了。
+
+\section{結語}
+\label{sec:end}
+
+這個 skill 的價值不在任何單一規則，而在每條規則都對應一個重現過的失敗，並且用同一道閘門守著。這份 PDF 以範本的 preamble 加上本文內容，在同一個容器內以 latexmk 編譯，五項計數全為零；它示範的每一個元素都是 skill 支援範圍內的東西。
+
+% --- BIBLIOGRAPHY: numbered in order of first citation ---
+% \balance decided after inspecting the unbalanced output (SKILL.md §10).
+\begingroup
+\raggedright
+\small
+\begin{thebibliography}{9}
+\bibitem{repo}
+markgoob, ``latex-twocol-cjk,'' v1.1.0, GitHub, 2026. [Online]. Available:
+\url{https://github.com/markgoob/latex-twocol-cjk}. [Accessed: Sep.~3, 2026].
+
+\bibitem{repo-zh}
+markgoob，「latex-twocol-cjk 繁體中文說明」，GitHub，2026。[Online]. Available:
+\url{https://github.com/markgoob/latex-twocol-cjk/blob/main/README.zh-TW.md}.
+[Accessed: Sep.~3, 2026] (in Chinese).
+
+\bibitem{babel}
+J. Bezos and J. L. Braams, \textit{Babel: Localization and
+internationalization}, v26.9, CTAN, 2026. [Online]. Available:
+\url{https://ctan.org/pkg/babel}. [Accessed: Sep.~3, 2026].
+
+\bibitem{notocjk}
+Google, ``Noto CJK,'' GitHub repository. [Online]. Available:
+\url{https://github.com/notofonts/noto-cjk}. [Accessed: Sep.~3, 2026].
+
+\bibitem{luaotfload}
+The LuaLaTeX Development Team, \textit{The luaotfload package}, CTAN.
+[Online]. Available: \url{https://ctan.org/pkg/luaotfload}.
+[Accessed: Sep.~3, 2026].
+
+\bibitem{behuman}
+markgoob, ``be-human-v1,'' GitHub, 2026. [Online]. Available:
+\url{https://github.com/markgoob/be-human-v1}. [Accessed: Sep.~3, 2026].
+\end{thebibliography}
+\endgroup
+
+\end{document}

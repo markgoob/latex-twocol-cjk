@@ -297,6 +297,32 @@ with no `subfigure` environment never consumes that setup, and `caption`
 reports it — one line, but the log gate counts it. Either keep a subfigure or
 delete the `\captionsetup[subfigure]{…}` line from your copy of the preamble.
 
+## E24. `Missing character: There is no ⋯ (U+22EF) in font "name:Noto Serif…"`
+
+The Chinese ellipsis typed in Chinese prose, yet the log names the *Latin*
+font. babel's `onchar` assigns characters to a locale by script, and both
+ellipsis code points — ⋯ U+22EF and … U+2026 — are script "Common", so they are
+never handed to the CJK font. Noto Serif lacks U+22EF entirely, so ⋯ vanishes
+from the page; it does have U+2026, which it sets as low Latin dots instead of
+the centred form Chinese typography expects.
+
+Fix: route both code points to the Chinese locale. The template does this in
+its language block; if you built your own preamble, add:
+
+```latex
+\babelcharproperty{"2026}{locale}{chinese-traditional}
+\babelcharproperty{"22EF}{locale}{chinese-traditional}
+```
+
+Both ellipses then come from the CJK font, centred, with zero `Missing
+character`. In English sentences write `\ldots` rather than typing the character,
+since a typed … will now also use the CJK glyph.
+
+What does *not* work: attaching the glyph fallback of E21 to the Latin family.
+The fallback font has to carry the glyph, and on this machine only the Noto TC
+faces do — `fc-list ':charset=22ef' family` lists no Microsoft JhengHei, no
+PMingLiU — so the fallback leaves ⋯ missing exactly as before.
+
 ---
 
 ## Reproducing a clean build without installing TeX

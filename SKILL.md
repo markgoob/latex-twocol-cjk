@@ -270,8 +270,13 @@ consequences, since the source is not plain text:
 
 - Type 「」 as the characters themselves. Backtick-and-quote input (` `` '' `)
   is Latin quoting and comes out as “ ”.
-- Type the Chinese ellipsis as ⋯⋯, not `\ldots`, which sets the Latin
-  three-dot form on the baseline.
+- Type the Chinese ellipsis as ⋯⋯ (U+22EF) or …… (U+2026), never `\ldots`,
+  which sets the Latin three-dot form on the baseline. Both code points are
+  script "Common", so babel's `onchar` would leave them in the Latin font —
+  Noto Serif has no U+22EF at all (the glyph is dropped, one `Missing
+  character` line) and sets U+2026 as low Latin dots. The template routes both
+  to the Chinese locale with `\babelcharproperty`, so they come from the CJK
+  font, centred. In English sentences use `\ldots`.
 
 **Keep the half-width space at every CJK/Latin boundary** (§8). That rule is
 `be-human-v1`'s too; it is repeated here because it also moves line breaks.
@@ -354,3 +359,5 @@ Then read the log, in this order:
   families are installed before you waste a build.
 - `scripts/build.ps1` — containerised LuaLaTeX build for machines with no TeX
   distribution; mounts the host fonts so the build sees the real environment.
+- `scripts/log-gate.sh` — the five log counts in one command; exits non-zero
+  on any hit. Same logic CI runs.
