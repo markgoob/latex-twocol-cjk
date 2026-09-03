@@ -48,6 +48,7 @@ $files = Get-ChildItem $Source -Recurse -File | Where-Object {
     $top = ($rel -split '[\\/]')[0]
     $top -ne '.git' -and
     $top -ne '.github' -and
+    $top -ne 'examples' -and
     $Exclude -notcontains $rel -and
     $_.Extension -notin @('.aux', '.log', '.fls', '.fdb_latexmk', '.out', '.pdf', '.synctex.gz')
 }
