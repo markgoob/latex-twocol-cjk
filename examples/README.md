@@ -45,3 +45,9 @@ builds it in a container with the host's fonts mounted.
    `scripts/log-gate.sh examples/<name>/main.log` reports five zeros.
 3. Commit `body.tex`, the generated `main.tex`, and the PDF as `<name>.pdf`.
    `main.pdf` stays ignored.
+
+CI enforces step 3: it regenerates `main.tex` and fails if the result differs
+from the committed file. So a change to `references/template.tex` or to any
+`body.tex` has to be followed by `sh examples/assemble.sh <name>` and a commit
+of the regenerated `main.tex`, or the build goes red with a message saying
+which file is stale.
