@@ -19,7 +19,11 @@ description: >
 
 ## Quick start
 
-1. Copy everything in `references/template.tex` above the `END PREAMBLE` marker.
+1. Copy everything in `references/template.tex` above the `% --- TITLE & AUTHORS`
+   marker. What sits between that marker and `END PREAMBLE` is the example
+   `\title`, `\author` and `\date{}`: write your own there, and add a second
+   `\hypersetup{pdftitle=…, pdfauthor=…}` — later keys override the template's
+   placeholder metadata.
 2. Replace the body. Keep the `\twocolumn[\begin{@twocolumnfalse} … ]` title block.
 3. Build with `latexmk -lualatex -interaction=nonstopmode main.tex`.
 4. Check the log: `Missing character` or `Font shape … undefined` means the font
@@ -109,6 +113,17 @@ as the template does, or `\scshape` on every `\section` emits warnings. Caveat
 that no setting fixes: in a heading mixing scripts, the Latin half small-caps
 and the Chinese half cannot. For mostly-Chinese headings use `\bfseries`.
 
+**Trap 3: regional subsets have holes.** `Noto Serif TC` is a regional subset.
+It has no Japanese shinjitai 図 (U+56F3) and skips many simplified forms;
+anything outside the Traditional Chinese repertoire is dropped from the PDF
+with one `Missing character` line and a clean exit. The template looks for a
+wider second font (full-repertoire Noto Sans CJK, Microsoft JhengHei, Yu
+Gothic) and attaches it to all three CJK families as a luaotfload glyph
+fallback, so such a glyph prints from the second font instead of vanishing;
+if no candidate is installed it declares nothing. Both this and an explicit
+`\newfontfamily` switch survive babel's `onchar`; the fallback needs no markup
+in the text. Check a glyph before relying on it: `fc-list ':charset=56f3' family`.
+
 Run `scripts/check-fonts.ps1` (or `.sh`) before the first build.
 
 ## 3. Title block, abstract, keywords
@@ -128,6 +143,15 @@ The full-width title block uses `\twocolumn[\begin{@twocolumnfalse} … ]`.
 
 `titlesec` gives the four IEEE levels: Roman centred small caps, letter italic,
 `1)` run-in, `a)` run-in.
+
+For a document whose headings are mostly Chinese, override the first two levels
+after the copied preamble — small caps and italic do not exist for Han glyphs,
+and the later `\titleformat` wins:
+
+```latex
+\titleformat{\section}[block]{\centering\normalsize\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}[block]{\normalsize\bfseries}{\Alph{subsection}.}{0.5em}{}
+```
 
 **Redefine `\thesection` too, not just the titlesec label.** The label argument
 only changes what the heading displays; `\ref` reads `\thesection`. Miss this
@@ -168,6 +192,9 @@ default is `Figure 1:` with a colon, so the setup is load-bearing, not decoratio
   for prose cells. A justified 2 cm column produces huge word gaps.
 - Numeric benchmark columns: `siunitx` `S` columns so decimal points align.
 - Subfigures via `subcaption`, labelled `(a)`/`(b)`, referenced as `Fig. 2a`.
+  A document that ends up with **no** subfigure trips `Package caption Warning:
+  Unused \captionsetup[subfigure]` from the template's preamble; delete that
+  `\captionsetup[subfigure]` line if you drop the subfigure example.
 - Table footnotes: `\raggedright` plus `\par\vspace{2pt}` between entries;
   superscript markers as `\rlap{$^{\star}$}`.
 
@@ -177,6 +204,14 @@ default is `Figure 1:` with a colon, so the setup is load-bearing, not decoratio
   for one column. Verbatim blocks over ~30 lines will break the column — split
   them. `listings` handles multibyte text poorly; `minted` needs Pygments and
   `-shell-escape`.
+- Inline `\verb|…|` cannot break. Past about 40 characters it overflows the
+  column and drags the neighbouring lines into `Underfull` badness; move it to
+  a display `Verbatim` block, splitting a long command over two lines (an
+  argument may start on the next line). Three `\texttt{}` tokens joined by 、
+  do the same more slowly — spread them across the sentence.
+- `\XeLaTeX`, `\LuaLaTeX` and `\XeTeX` are not kernel macros: without
+  `metalogo` they are `Undefined control sequence`. `\LaTeX` and `\TeX` are
+  fine. Write the names as plain text or load `metalogo`.
 - CJK in math must be wrapped: `$P_{\text{尖峰}}$`. babel's onchar switching
   acts on text, not on math atoms, so bare CJK in math loses its font.
 - TikZ: wrap in `\resizebox{\columnwidth}{!}{…}`, place with `[!t]`, use
@@ -255,13 +290,31 @@ budget in §3 is not the constraint; the padding is.
 - Wrap in `\begingroup\raggedright\small … \endgroup`, or the narrow column
   stretches the entries. `xurl` breaks long URLs.
 - `\balance` (from `preprint`) must sit in what will be the **first column of
-  the last page**. Issued in the second column it silently does nothing. Look
-  at the unbalanced output first, then place it. It also interacts badly with
-  floats and footnotes near the end.
+  the last page**. Issued from the second column it does nothing except print
+  `Package balance Warning: You have called \balance in second column`, which
+  the log gate counts. Look at the unbalanced output first: if the last page
+  already fills both columns, leave `\balance` out entirely. It also interacts
+  badly with floats and footnotes near the end.
 - For mixed-script bibliographies prefer `biblatex` with `style=ieee` and the
   `biber` backend; classic BibTeX is 8-bit and mishandles Unicode sorting.
 - Chinese references: keep the author name un-inverted (陳大文, not 大文, 陳),
   and append `(in Chinese)` after the entry.
+
+## Extending the preamble without editing it
+
+Everything document-specific goes *after* the copied preamble, where the later
+definition wins: a second `\hypersetup{…}` for metadata, `\titleformat`
+overrides, list settings. To add a feature to a CJK family, re-declare it and
+keep the template's keys in front of yours:
+
+```latex
+\babelfont[chinese-traditional]{rm}[\CJKaxis{700}\CJKfallbackkeys, Scale=1.02]{\CJKSerif}
+```
+
+`\CJKaxis`, `\CJKfallbackkeys`, `\CJKSerif`, `\CJKSans` and `\CJKMono` are
+still defined at that point, so the weight pin, the glyph fallback and the
+font chain carry over. The last `\babelfont` for a given language and family
+is the one in force.
 
 ## 11. Build and verify
 

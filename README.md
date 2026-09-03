@@ -45,6 +45,12 @@ BoldFont = {*}, BoldFeatures = {RawFeature={axis={wght=700}}},
 Pinning also buys a real bold instead of a faked one, and static families ignore
 the feature without complaint.
 
+Regional subsets also have holes: Google's `Noto Serif TC` has no Japanese 図,
+and a glyph the font lacks simply vanishes from the PDF with one log line. When
+a wider font is installed (full-repertoire Noto CJK, Microsoft JhengHei), the
+template attaches it as a luaotfload glyph fallback so the character prints
+from there instead.
+
 A diagnostic note, since it cost time to learn: `pdffonts` cannot tell you
 whether the axis took. Subset names come from the base font's PostScript name,
 so a correctly pinned run still reports `NotoSerifTC-ExtraLight`. Measure the
@@ -108,7 +114,7 @@ glyph was dropped from the PDF; the build still succeeds.
 | `Too many unprocessed floats` | add `\FloatBarrier` |
 | `There were undefined references` | run again |
 
-`references/troubleshooting.md` maps 19 errors to causes and fixes, with the log
+`references/troubleshooting.md` maps 23 errors to causes and fixes, with the log
 excerpts they actually produce.
 
 ## Prose, not just typesetting

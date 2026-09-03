@@ -35,6 +35,8 @@ BoldFont = {*}, BoldFeatures = {RawFeature={axis={wght=700}}},
 
 釘軸還順帶換來真正的粗體，不是描邊假粗，而靜態字型會安靜地忽略這個設定，所以同一行寫法對兩類字型都安全。
 
+區域子集另有覆蓋範圍的洞：Google 的 Noto Serif TC 沒有日文的「図」，字型缺的字會從 PDF 裡直接消失，只留一行 log。只要機器上裝了覆蓋較廣的字型（完整版 Noto CJK、微軟正黑體），範本會把它掛成 luaotfload 的字形後備，缺字改由它印出來。
+
 有個診斷上的坑值得先講：`pdffonts` 看不出軸有沒有釘對。子集名稱沿用字型檔的 PostScript name，所以就算設定正確，報出來的仍然是 `NotoSerifTC-ExtraLight`。要判斷只能量渲染後的墨量。
 
 ## 適用範圍
@@ -88,7 +90,7 @@ exit code 是 0 不代表文件沒問題。`Missing character` 的意思是有�
 | `Too many unprocessed floats` | 補一個 `\FloatBarrier` |
 | `There were undefined references` | 再跑一次就好 |
 
-`references/troubleshooting.md` 收了 19 條錯誤，每條都附實際會出現的 log 片段、成因與修法。
+`references/troubleshooting.md` 收了 23 條錯誤，每條都附實際會出現的 log 片段、成因與修法。
 
 ## 中文行文
 

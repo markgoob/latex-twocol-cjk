@@ -8,7 +8,10 @@
 % font takes the whole document and no per-script switching happens.
 % See references/troubleshooting.md, entry E1, for the XeLaTeX-only fallback.
 %
-% Everything from here to "END PREAMBLE" is the preamble.  Copy it whole.
+% Copy everything above the TITLE & AUTHORS section marker into your document.
+% The block between that marker and "END PREAMBLE" is the example title, author and date:
+% write your own there, plus a second \hypersetup{pdftitle=..., pdfauthor=...}
+% (later keys override the placeholders set further up).
 % =============================================================================
 
 \documentclass[10pt, a4paper, twocolumn]{article}
@@ -45,14 +48,20 @@
 % "Noto Serif TC" (Google Fonts, which is what a Windows user usually installs).
 % Hard-coding one name makes fontspec abort with a FATAL "font cannot be found".
 % \PickFont walks a list and takes the first family actually installed.
+% \PickFont* is the quiet form for optional fonts: when nothing on the list is
+% installed it writes an Info line to the log instead of a Warning.
 \ExplSyntaxOn
-\NewDocumentCommand \PickFont { m m }
+\NewDocumentCommand \PickFont { s m m }
   {
-    \tl_clear_new:N #1
-    \clist_map_inline:nn {#2}
-      { \tl_if_empty:NT #1 { \IfFontExistsTF {##1} { \tl_set:Nn #1 {##1} } { } } }
-    \tl_if_empty:NT #1
-      { \msg_warning:nnn { template } { nofont } {#2} }
+    \tl_clear_new:N #2
+    \clist_map_inline:nn {#3}
+      { \tl_if_empty:NT #2 { \IfFontExistsTF {##1} { \tl_set:Nn #2 {##1} } { } } }
+    \tl_if_empty:NT #2
+      {
+        \IfBooleanTF {#1}
+          { \msg_info:nnn    { template } { nofont } {#3} }
+          { \msg_warning:nnn { template } { nofont } {#3} }
+      }
   }
 \msg_new:nnn { template } { nofont }
   { None~of~these~fonts~is~installed:~#1~--~run~scripts/check-fonts~. }
@@ -111,9 +120,28 @@
   SmallCapsFont      = {*},
   SmallCapsFeatures  = {RawFeature={axis={wght=400}}}
 }
-\babelfont[chinese-traditional]{rm}[\CJKaxis{700}]{\CJKSerif}
-\babelfont[chinese-traditional]{sf}[\CJKaxis{700}]{\CJKSans}
-\babelfont[chinese-traditional]{tt}[\CJKaxis{700}]{\CJKMono}
+
+% --- GLYPH FALLBACK (auto-detected) -----------------------------------------
+% Regional subsets have holes.  Google's "Noto Serif TC" has no Japanese
+% shinjitai 図 (U+56F3) and skips many simplified forms; a glyph the font lacks
+% is dropped from the PDF with one "Missing character" log line and a clean
+% exit.  luaotfload can hand such glyphs to a second font.  The candidates
+% below cover both platforms: full-repertoire Noto CJK on Linux/Overleaf,
+% Microsoft JhengHei or Yu Gothic on Windows.  If none is installed, nothing is
+% declared and the template behaves exactly as before.
+% Verified through babel's onchar: the fallback fires inside rm, sf and tt.
+% Limit: a fallback glyph inside bold text comes out at the second font's
+% regular weight.
+\PickFont* \CJKFallback {Noto Sans CJK TC, Source Han Sans TC, Microsoft JhengHei,
+                         Noto Sans CJK JP, Yu Gothic}
+\expandafter\IfBlankTF\expandafter{\CJKFallback}
+  {\newcommand{\CJKfallbackkeys}{}}
+  {\directlua{luaotfload.add_fallback("cjkfallback", {"\CJKFallback:mode=harf;"})}%
+   \newcommand{\CJKfallbackkeys}{, RawFeature={fallback=cjkfallback}}}
+
+\babelfont[chinese-traditional]{rm}[\CJKaxis{700}\CJKfallbackkeys]{\CJKSerif}
+\babelfont[chinese-traditional]{sf}[\CJKaxis{700}\CJKfallbackkeys]{\CJKSans}
+\babelfont[chinese-traditional]{tt}[\CJKaxis{700}\CJKfallbackkeys]{\CJKMono}
 
 % --- CORE PACKAGES -----------------------------------------------------------
 \usepackage{amsmath}
