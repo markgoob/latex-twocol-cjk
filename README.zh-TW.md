@@ -6,6 +6,16 @@
 
 會做這個 skill，是因為網路上最常見的那套設定根本編不出檔案。CJK 配 babel 的標準寫法是 `bidi=basic` 加 `onchar=ids fonts` 再搭 XeLaTeX，但這個組合產不出 PDF。`bidi=basic` 只有 LuaTeX 支援，babel 會直接報錯停機；`onchar` 同樣只有 LuaTeX 支援，卻是安靜失效，於是整套設定賴以成立的逐字換字型從來沒有真的發生過。
 
+## 它排出來長什麼樣
+
+<p align="center">
+  <a href="examples/skill-intro/skill-intro.pdf"><img src="examples/skill-intro/preview/page-1.png" width="32%" alt="skill-intro 範例第 1 頁"></a>
+  <a href="examples/skill-intro/skill-intro.pdf"><img src="examples/skill-intro/preview/page-2.png" width="32%" alt="skill-intro 範例第 2 頁"></a>
+  <a href="examples/skill-intro/skill-intro.pdf"><img src="examples/skill-intro/preview/page-3.png" width="32%" alt="skill-intro 範例第 3 頁"></a>
+</p>
+
+[`examples/skill-intro/skill-intro.pdf`](examples/skill-intro/skill-intro.pdf)：用這個 skill 寫成的三頁介紹文件，中文內文、中英雙摘要、TikZ 圖（含跨欄的雙面板 `figure*`）、三張表，五項 log 計數全為零。點頁面可開啟 PDF，原始碼在 [`examples/skill-intro/`](examples/skill-intro/)。
+
 ## 它擋掉什麼
 
 三個失敗模式，每一個都先在 TeX Live 2026 上實際重現，才寫進規則。
