@@ -105,6 +105,7 @@ exit code 是 0 不代表文件沒問題。`Missing character` 的意思是有�
 | `references/troubleshooting.md` | 錯誤 → 成因 → 修法 |
 | `scripts/check-fonts.ps1`、`.sh` | 列出候選字型家族裝了哪些 |
 | `scripts/build.ps1` | 給沒裝 TeX 的機器用的容器化編譯 |
+| `scripts/package-skill.ps1` | 打包成安裝程式吃得下的 `.skill` 檔 |
 
 ## 驗證
 

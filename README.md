@@ -134,6 +134,7 @@ changes how the page sets. Neither skill requires the other to work.
 | `references/troubleshooting.md` | error → cause → fix |
 | `scripts/check-fonts.ps1`, `.sh` | which candidate families are installed |
 | `scripts/build.ps1` | containerised build for machines with no TeX |
+| `scripts/package-skill.ps1` | build a `.skill` archive installers accept |
 
 ## Verification
 
