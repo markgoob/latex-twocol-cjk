@@ -12,6 +12,20 @@ combination cannot produce a PDF: `bidi=basic` is a LuaTeX-only method and babel
 raises a hard error on it, while `onchar` is also LuaTeX-only but fails silently,
 so the per-character font switching everything depends on never runs.
 
+## What it produces
+
+<p align="center">
+  <a href="examples/skill-intro/skill-intro.pdf"><img src="examples/skill-intro/preview/page-1.png" width="32%" alt="skill-intro example, page 1"></a>
+  <a href="examples/skill-intro/skill-intro.pdf"><img src="examples/skill-intro/preview/page-2.png" width="32%" alt="skill-intro example, page 2"></a>
+  <a href="examples/skill-intro/skill-intro.pdf"><img src="examples/skill-intro/preview/page-3.png" width="32%" alt="skill-intro example, page 3"></a>
+</p>
+
+[`examples/skill-intro/skill-intro.pdf`](examples/skill-intro/skill-intro.pdf) —
+a three-page introduction to the skill, written with the skill: Chinese body,
+English and Chinese abstracts, TikZ figures including a two-panel `figure*`,
+three tables, and all five log counts at zero. Click a page to open the PDF;
+the source is in [`examples/skill-intro/`](examples/skill-intro/).
+
 ## What it prevents
 
 Three failures, all reproduced against TeX Live 2026 before being written down.

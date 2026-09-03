@@ -17,6 +17,9 @@ examples/<name>/
   body.tex          the document-specific part: metadata, overrides, title, body
   main.tex          body.tex with the shared preamble in front; compiles on its own
   <name>.pdf        the rendered output, committed
+  preview/          page PNGs shown in the top-level README (GitHub does not
+                    render PDFs inline); regenerate after the PDF changes:
+                    pdftoppm -r 100 -png <name>.pdf preview/page
 ```
 
 `body.tex` is what a person actually writes. `main.tex` is generated:
