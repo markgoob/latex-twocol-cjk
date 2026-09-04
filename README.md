@@ -49,9 +49,9 @@ complete, self-contained document.
 
 ## Build
 
-Copy `references/template.tex` to `main.tex` in your project, or keep everything
-above its `% --- TITLE & AUTHORS` marker as the preamble and write your own body
-under it. Then:
+Copy `references/template.tex` to `main.tex` and write your document into it,
+keeping the `\twocolumn[\begin{@twocolumnfalse} … ]` title block that makes the
+abstract span both columns. `SKILL.md` Quick start has the four steps. Then:
 
 ```bash
 latexmk -lualatex -interaction=nonstopmode main.tex
@@ -65,11 +65,12 @@ sh scripts/check-fonts.sh   # Linux, macOS (needs fontconfig), Overleaf, contain
 scripts\check-fonts.ps1     # Windows
 ```
 
-The other is a minimal TeX Live, which lacks several packages the template
-loads — `balance.sty` comes from `preprint`, and `subcaption` from `caption`:
+The other is a thin TeX Live install. The template loads packages a small scheme
+omits — `balance.sty` comes from `preprint`, `subcaption` from `caption` — and
+`references/troubleshooting.md` E16 covers the error they produce:
 
 ```bash
-tlmgr install preprint titlesec placeins xurl multirow
+tlmgr install preprint titlesec placeins xurl multirow caption
 ```
 
 No TeX installed? `scripts/build.ps1 main.tex` compiles in a TeX Live container
@@ -92,10 +93,12 @@ you 図 / 表 / 参考文献 and a Japanese date format: wrong language, and wro
 glyph forms for a Chinese document. The template keeps `english` as the main
 language and adds the CJK locale as secondary, so captions stay English as IEEE
 expects while Chinese text still gets the right font, line breaking, and
-`zh-Hant` tagging. Traditional Chinese is the verified default; when the
-document really is in another language, `chinese-simplified`, `japanese` and
-`korean` are a one-line swap in the preamble, Korean additionally needing a KR
-font because it breaks lines on spaces rather than between characters.
+`zh-Hant` tagging. Traditional Chinese is the verified default. When the
+document really is in another language, replace `chinese-traditional` at every
+occurrence in the preamble — the `\babelprovide`, both `\babelcharproperty`
+lines, and all three `\babelfont` declarations — with `chinese-simplified`,
+`japanese` or `korean`; Korean also needs a KR font, since it breaks lines on
+spaces rather than between characters.
 
 **Fonts, twice over.** The same typeface ships as `Noto Serif CJK TC` from the
 noto-cjk repo, Linux packages, and Overleaf, but as `Noto Serif TC` from Google

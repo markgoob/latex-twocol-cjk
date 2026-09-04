@@ -34,7 +34,7 @@ Windows 的位置是 `C:\Users\<你>\.claude\skills\latex-twocol-cjk\`。skill �
 
 ## 編譯
 
-先把 `references/template.tex` 複製成自己專案裡的 `main.tex`，或者只留 `% --- TITLE & AUTHORS` 標記以上那段當 preamble，內文自己寫。然後：
+先把 `references/template.tex` 複製成自己專案裡的 `main.tex`，內文寫進去，並保留 `\twocolumn[\begin{@twocolumnfalse} … ]` 那個標題區塊，摘要橫跨兩欄靠的就是它。四個步驟寫在 `SKILL.md` 的 Quick start。然後：
 
 ```bash
 latexmk -lualatex -interaction=nonstopmode main.tex
@@ -47,10 +47,10 @@ sh scripts/check-fonts.sh   # Linux、macOS（需 fontconfig）、Overleaf、容
 scripts\check-fonts.ps1     # Windows
 ```
 
-二是 TeX Live 裝的是精簡方案，缺了範本會載入的幾個套件，`balance.sty` 在 `preprint` 裡，`subcaption` 在 `caption` 裡：
+二是 TeX Live 裝得太精簡。範本會載入小型方案沒有的套件，`balance.sty` 在 `preprint` 裡，`subcaption` 在 `caption` 裡，對應的錯誤是 `references/troubleshooting.md` 的 E16：
 
 ```bash
-tlmgr install preprint titlesec placeins xurl multirow
+tlmgr install preprint titlesec placeins xurl multirow caption
 ```
 
 本機沒裝 TeX 的話，`scripts/build.ps1 main.tex` 會在 TeX Live 容器裡編譯，並且掛載本機字型，所以看到的是真實的字型環境，不是一套通用的 Linux 環境。
@@ -63,7 +63,7 @@ Overleaf 會忽略 `% !TeX program` 那行，要自己到 Menu → Compiler 選 
 
 **引擎**。改用 LuaLaTeX 編譯，並且把 `bidi=` 整個拿掉。純左至右的中英文件用不到雙向文字演算法。
 
-**語系**。babel 有 `chinese-traditional`（zh-Hant）和 `chinese-simplified`（zh-Hans）。改用 `japanese` 語系的話，圖說會變成「図」、表格變成「表」、參考文獻變成「参考文献」，日期也是日式格式。對中文文件來說這既是語言錯誤，字形也錯，繁體該是「圖」和「參考文獻」。範本讓 `english` 當主語言，把中文語系掛成次語言，於是圖表標題與日期維持英文（IEEE 要的），中文照樣拿到正確字型、正確斷行，以及 PDF 裡正確的 `zh-Hant` 語言標記。繁體是驗證過的預設值；文件真的是別的語言時，`chinese-simplified`、`japanese`、`korean` 在 preamble 裡換一行就好，韓文另外要一套 KR 字型，因為它斷行是斷在空格而不是字元之間。
+**語系**。babel 有 `chinese-traditional`（zh-Hant）和 `chinese-simplified`（zh-Hans）。改用 `japanese` 語系的話，圖說會變成「図」、表格變成「表」、參考文獻變成「参考文献」，日期也是日式格式。對中文文件來說這既是語言錯誤，字形也錯，繁體該是「圖」和「參考文獻」。範本讓 `english` 當主語言，把中文語系掛成次語言，於是圖表標題與日期維持英文（IEEE 要的），中文照樣拿到正確字型、正確斷行，以及 PDF 裡正確的 `zh-Hant` 語言標記。繁體是驗證過的預設值。文件真的是別的語言時，要把 preamble 裡每一處 `chinese-traditional` 都換成 `chinese-simplified`、`japanese` 或 `korean`（`\babelprovide` 一處、`\babelcharproperty` 兩行、`\babelfont` 三行），不是只改一行；韓文另外要一套 KR 字型，因為它斷行是斷在空格而不是字元之間。
 
 **字型，而且錯兩次**。同一套字型在不同發行管道叫不同名字。noto-cjk 專案、Linux 套件與 Overleaf 給的是 `Noto Serif CJK TC`，Google Fonts 給的是 `Noto Serif TC`，而後者才是 Windows 使用者實際會裝到的，名字寫死哪一個都會讓 fontspec 直接中止。第二個坑更安靜。Google Fonts 把 Noto TC 做成單一可變字型檔，它第一個具名實例的樣式叫 `ExtraLight,Regular`，權重只有 40，照家族名查找就會命中這個實例，於是中文內文被排成 ExtraLight，明顯比旁邊的拉丁文字細，而且不產生任何警告。
 
